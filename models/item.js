@@ -1,44 +1,36 @@
 "use strict";
 
-const { Model } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 
-module.exports = (sequelize, DataTypes) => {
-  class Item extends Model {
+module.exports = (sequelize) => {
+  class Inventories extends Model {
     static associate(models) {
-      Item.belongsTo(models.Factory, { foreignKey: "factory_id" });
-      Item.belongsTo(models.StorageCondition, { foreignKey: "storage_condition_id" });
-      Item.belongsTo(models.BOM, { foreignKey: "bom_id" });
+      Inventories.belongsTo(models.Items, { foreignKey: "item_id" });
+      Inventories.belongsTo(models.Factory, { foreignKey: "factory_id" });
+      Inventories.belongsTo(models.StorageCondition, { foreignKey: "storage_condition_id" });
     }
   }
 
-  Item.init(
+  Inventories.init(
     {
-      code: {
-        type: DataTypes.STRING(10),
-        primaryKey: true,
-      },
-      name: {
-        type: DataTypes.STRING(50),
+      id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+      item_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+      factory_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+      storage_condition_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+      lot_number: { type: DataTypes.STRING(50), allowNull: false },
+      quantity: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+      received_at: { type: DataTypes.DATE, allowNull: false },
+      first_received_at: { type: DataTypes.DATE, allowNull: false },
+      expiration_date: { type: DataTypes.DATEONLY, allowNull: false },
+      status: {
+        type: DataTypes.ENUM("Normal", "LowStock", "Expiring", "Expired"),
         allowNull: false,
+        defaultValue: "Normal",
       },
-      quantity: DataTypes.INTEGER,
-      category: DataTypes.ENUM(
-        "RawMaterial",
-        "SemiFinished",
-        "Finished",
-        "Supply"
-      ),
-      factory_id: DataTypes.INTEGER,
-      storage_condition_id: DataTypes.INTEGER,
-      bom_id: DataTypes.INTEGER,
+      unit: { type: DataTypes.STRING(10), allowNull: false },
     },
-    {
-      sequelize,
-      modelName: "Item",
-      tableName: "Items",
-      timestamps: false,
-    }
+    { sequelize, modelName: "Inventories", tableName: "Inventories", timestamps: true, underscored: true }
   );
 
-  return Item;
+  return Inventories;
 };

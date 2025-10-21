@@ -1,8 +1,8 @@
 "use strict";
 
-const { Model } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
   class Position extends Model {
     static associate(models) {
       Position.belongsTo(models.User, { foreignKey: "user_id" });
@@ -11,21 +11,12 @@ module.exports = (sequelize, DataTypes) => {
 
   Position.init(
     {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      user_id: DataTypes.STRING,
-      title: DataTypes.STRING, // CEO, Director, TeamLeader, Staff, PartTime
-      level: DataTypes.INTEGER,
+      id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+      user_id: { type: DataTypes.STRING(255), allowNull: false },
+      title: { type: DataTypes.STRING(50), allowNull: false },
+      level: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     },
-    {
-      sequelize,
-      modelName: "Position",
-      tableName: "Positions",
-      timestamps: false,
-    }
+    { sequelize, modelName: "Position", tableName: "Positions", timestamps: true, underscored: true }
   );
 
   return Position;

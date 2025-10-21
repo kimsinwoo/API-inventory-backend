@@ -1,33 +1,25 @@
 "use strict";
 
-const { Model } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
   class ApplicableItem extends Model {
     static associate(models) {
       ApplicableItem.hasMany(models.StorageCondition, {
         foreignKey: "applicable_item_id",
+        sourceKey: "id",
       });
     }
   }
 
   ApplicableItem.init(
     {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      name: DataTypes.STRING,
-      shelf_life: DataTypes.INTEGER,
-      unit: DataTypes.STRING,
+      id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+      name: { type: DataTypes.STRING(100), allowNull: false },
+      shelf_life: { type: DataTypes.INTEGER.UNSIGNED },
+      unit: { type: DataTypes.STRING(20) },
     },
-    {
-      sequelize,
-      modelName: "ApplicableItem",
-      tableName: "ApplicableItems",
-      timestamps: false,
-    }
+    { sequelize, modelName: "ApplicableItem", tableName: "ApplicableItems", timestamps: true, underscored: true }
   );
 
   return ApplicableItem;

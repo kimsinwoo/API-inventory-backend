@@ -1,33 +1,34 @@
 "use strict";
 
-const { Model } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
   class StorageCondition extends Model {
     static associate(models) {
-      StorageCondition.hasMany(models.Item, {
+      StorageCondition.hasMany(models.Items, {
         foreignKey: "storage_condition_id",
+        sourceKey: "id",
+      });
+      StorageCondition.hasMany(models.Inventories, {
+        foreignKey: "storage_condition_id",
+        sourceKey: "id",
       });
     }
   }
 
   StorageCondition.init(
     {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      name: DataTypes.STRING,
-      temperature_range: DataTypes.STRING,
-      humidity_range: DataTypes.STRING,
-      applicable_item_id: DataTypes.INTEGER,
+      id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+      name: { type: DataTypes.STRING(50), allowNull: false },
+      temperature_range: { type: DataTypes.STRING(50) },
+      humidity_range: { type: DataTypes.STRING(50) },
     },
     {
       sequelize,
       modelName: "StorageCondition",
       tableName: "StorageConditions",
-      timestamps: false,
+      timestamps: true,
+      underscored: true,
     }
   );
 
