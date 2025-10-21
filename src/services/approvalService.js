@@ -24,7 +24,7 @@ module.exports = (models) => {
           required_approver_id: st.id,
           order: i++,
           assignee_role_code: st.role_code,
-          assignee_user_id: null, // 역할→사람 resolve가 필요하면 여기서 주입
+          assignee_user_id: null,
           status: "WAITING",
         },
         { transaction: tx }

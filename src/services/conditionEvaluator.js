@@ -1,6 +1,5 @@
 "use strict";
 
-// true(서명 필요) / false(생략)
 function cmpNumber(v, c) {
   if (c.lt !== undefined && !(v < c.lt)) return false;
   if (c.lte !== undefined && !(v <= c.lte)) return false;
