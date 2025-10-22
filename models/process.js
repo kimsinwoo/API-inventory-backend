@@ -5,9 +5,13 @@ const { Model, DataTypes } = require("sequelize");
 module.exports = (sequelize) => {
   class Process extends Model {
     static associate(models) {
-      Process.hasMany(models.Factory, {
+      Process.belongsToMany(models.Factory, {
+        through: "FactoryProcesses",
         foreignKey: "process_id",
-        sourceKey: "id",
+        otherKey: "factory_id",
+        as: "factories",
+        onUpdate: "CASCADE",
+        onDelete: "CASCADE",
       });
     }
   }
@@ -15,7 +19,7 @@ module.exports = (sequelize) => {
   Process.init(
     {
       id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
-      name: { type: DataTypes.STRING(100), allowNull: false },
+      name: { type: DataTypes.STRING(100), allowNull: false }, // 예: 전처리, 가공, 원재료 입고
     },
     { sequelize, modelName: "Process", tableName: "Processes", timestamps: true, underscored: true }
   );

@@ -1,26 +1,14 @@
-"use strict";
-
 const express = require("express");
+const ctrl = require("../controller/processController");
+const { validateProcessCreate } = require("../middleware/validate");
+
 const router = express.Router();
 
-const ctrl = require("../controller/processController");
-const pagination = require("../middleware/pagination");
-const idParam = require("../middleware/idParam");
-const validateProcess = require("../middleware/validateProcess");
-
-// 목록
-router.get("/", pagination, ctrl.list);
-
-// 상세
-router.get("/:id", idParam, ctrl.detail);
-
-// 생성
-router.post("/", validateProcess, ctrl.create);
-
-// 수정
-router.patch("/:id", idParam, validateProcess, ctrl.update);
-
-// 삭제
-router.delete("/:id", idParam, ctrl.remove);
+// /api/processes
+router.get("/", ctrl.index);
+router.get("/:id", ctrl.show);
+router.post("/", validateProcessCreate, ctrl.create);
+router.put("/:id", ctrl.update);
+router.delete("/:id", ctrl.destroy);
 
 module.exports = router;

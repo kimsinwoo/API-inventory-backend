@@ -1,32 +1,34 @@
-"use strict";
+const svc = require("../services/processService");
 
-const asyncHandler = require("../middleware/asyncHandler");
-const service = require("../services/processService");
+module.exports = {
+  index: async (req, res, next) => {
+    try { res.json({ ok: true, data: await svc.listProcesses() }); }
+    catch (e) { next(e); }
+  },
 
-exports.list = asyncHandler(async (req, res) => {
-  const search = typeof req.query.search === "string" ? req.query.search : "";
-  const result = await service.list({ ...req.pagination, search });
-  res.status(200).json({ ok: true, data: result });
-});
+  show: async (req, res, next) => {
+    try {
+      const one = await svc.getProcess(req.params.id);
+      if (!one) return res.status(404).json({ ok: false, message: "Process not found" });
+      res.json({ ok: true, data: one });
+    } catch (e) { next(e); }
+  },
 
-exports.detail = asyncHandler(async (req, res) => {
-  const found = await service.getById(req.params.id);
-  if (!found) return res.status(404).json({ ok: false, message: "Process not found" });
-  res.status(200).json({ ok: true, data: found });
-});
+  create: async (req, res, next) => {
+    try { res.status(201).json({ ok: true, data: await svc.createProcess(req.body) }); }
+    catch (e) { next(e); }
+  },
 
-exports.create = asyncHandler(async (req, res) => {
-  const created = await service.create({ name: req.body.name });
-  res.status(201).json({ ok: true, data: created });
-});
+  update: async (req, res, next) => {
+    try {
+      const up = await svc.updateProcess(req.params.id, req.body);
+      if (!up) return res.status(404).json({ ok: false, message: "Process not found" });
+      res.json({ ok: true, data: up });
+    } catch (e) { next(e); }
+  },
 
-exports.update = asyncHandler(async (req, res) => {
-  const updated = await service.update(req.params.id, { name: req.body.name });
-  res.status(200).json({ ok: true, data: updated });
-});
-
-exports.remove = asyncHandler(async (req, res) => {
-  const deleted = await service.remove(req.params.id);
-  if (deleted === 0) return res.status(404).json({ ok: false, message: "Process not found" });
-  res.status(200).json({ ok: true, message: "Deleted" });
-});
+  destroy: async (req, res, next) => {
+    try { res.json({ ok: true, deleted: await svc.deleteProcess(req.params.id) }); }
+    catch (e) { next(e); }
+  },
+};

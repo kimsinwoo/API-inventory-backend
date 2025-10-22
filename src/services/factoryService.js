@@ -1,94 +1,81 @@
-"use strict";
-
 const db = require("../../models");
-const { Op } = require("sequelize");
+const { Factory, Process } = db;
 
-const ALLOWED_TYPES = Object.freeze(["1PreProcessing", "2Manufacturing"]);
-
-async function list({ page, limit, offset, search, type, processId }) {
-  const where = {};
-
-  if (search && search.trim().length > 0) {
-    where.name = { [Op.like]: `%${search.trim()}%` };
-  }
-  if (type && ALLOWED_TYPES.includes(type)) {
-    where.type = type;
-  }
-  if (processId != null) {
-    where.process_id = processId;
-  }
-
-  const { rows, count } = await db.Factory.findAndCountAll({
-    where,
-    order: [["id", "DESC"]],
-    include: [{ model: db.Process, attributes: ["id", "name"] }],
-    limit,
-    offset,
+exports.listFactories = async () => {
+  return Factory.findAll({
+    include: [{ model: Process, as: "processes", through: { attributes: [] } }],
+    order: [["id", "ASC"]],
   });
+};
 
-  return {
-    items: rows,
-    totalItems: count,
-    totalPages: Math.ceil(count / limit),
-    page,
-    limit,
-  };
-}
-
-async function getById(id) {
-  const found = await db.Factory.findByPk(id, {
-    include: [{ model: db.Process, attributes: ["id", "name"] }],
+exports.getFactory = async (id) => {
+  return Factory.findByPk(id, {
+    include: [{ model: Process, as: "processes", through: { attributes: [] } }],
   });
-  return found;
-}
+};
 
-async function ensureProcessIfProvided(process_id) {
-  if (process_id == null) return;
-  const p = await db.Process.findByPk(process_id);
-  if (!p) {
-    const e = new Error("Process not found for given process_id");
-    e.statusCode = 400;
-    throw e;
-  }
-}
-
-async function create({ type, name, address, process_id }) {
-  await ensureProcessIfProvided(process_id);
-  const created = await db.Factory.create({ type, name, address: address || null, process_id: process_id || null });
-  return created;
-}
-
-async function update(id, payload) {
-  const found = await db.Factory.findByPk(id);
-  if (!found) {
-    const e = new Error("Factory not found");
-    e.statusCode = 404;
-    throw e;
-  }
-
-  const toUpdate = {};
-  if (payload.type) toUpdate.type = payload.type;
-  if (payload.name) toUpdate.name = payload.name;
-  if (payload.address !== undefined) toUpdate.address = payload.address || null;
-
-  if (Object.prototype.hasOwnProperty.call(payload, "process_id")) {
-    const pid = payload.process_id;
-    if (pid == null) {
-      toUpdate.process_id = null;
-    } else {
-      await ensureProcessIfProvided(pid);
-      toUpdate.process_id = pid;
+exports.createFactory = async (payload) => {
+  const { type, name, address, processIds } = payload;
+  const t = await db.sequelize.transaction();
+  try {
+    const factory = await Factory.create({ type, name, address }, { transaction: t });
+    if (Array.isArray(processIds) && processIds.length) {
+      const processes = await Process.findAll({ where: { id: processIds } });
+      await factory.setProcesses(processes, { transaction: t });
     }
+    await t.commit();
+    return factory;
+  } catch (e) {
+    await t.rollback();
+    throw e;
   }
+};
 
-  await found.update(toUpdate);
-  return found;
-}
+exports.updateFactory = async (id, payload) => {
+  const { type, name, address, processIds } = payload;
+  const t = await db.sequelize.transaction();
+  try {
+    const factory = await Factory.findByPk(id, { transaction: t });
+    if (!factory) return null;
 
-async function remove(id) {
-  // Inventory가 많다면 실제 삭제 대신 비활성화를 고려할 수도 있음.
-  const deleted = await db.Factory.destroy({ where: { id } });
-  return deleted; // 1 or 0
-}
+    await factory.update({ type, name, address }, { transaction: t });
 
-module.exports = { list, getById, create, update, remove };
+    if (Array.isArray(processIds)) {
+      const processes = await Process.findAll({ where: { id: processIds } });
+      await factory.setProcesses(processes, { transaction: t });
+    }
+    await t.commit();
+
+    return await Factory.findByPk(id, {
+      include: [{ model: Process, as: "processes", through: { attributes: [] } }],
+    });
+  } catch (e) {
+    await t.rollback();
+    throw e;
+  }
+};
+
+exports.deleteFactory = async (id) => {
+  return Factory.destroy({ where: { id } });
+};
+
+exports.addFactoryProcesses = async (id, processIds = []) => {
+  const factory = await Factory.findByPk(id);
+  if (!factory) return null;
+  const processes = await Process.findAll({ where: { id: processIds } });
+  await factory.addProcesses(processes);
+  return Factory.findByPk(id, {
+    include: [{ model: Process, as: "processes", through: { attributes: [] } }],
+  });
+};
+
+exports.removeFactoryProcess = async (id, processId) => {
+  const factory = await Factory.findByPk(id);
+  if (!factory) return null;
+  const proc = await Process.findByPk(processId);
+  if (!proc) return null;
+  await factory.removeProcess(proc);
+  return Factory.findByPk(id, {
+    include: [{ model: Process, as: "processes", through: { attributes: [] } }],
+  });
+};

@@ -1,26 +1,19 @@
-"use strict";
-
 const express = require("express");
+const ctrl = require("../controller/factoryController");
+const { validateFactoryCreate, validateFactoryUpdate } = require("../middleware/validate");
+
 const router = express.Router();
 
-const ctrl = require("../controller/factoryController");
-const pagination = require("../middleware/pagination");
-const idParam = require("../middleware/idParam");
-const validateFactory = require("../middleware/validateFactory");
+// /api/factories
+router.get("/", ctrl.index);
+router.get("/:id", ctrl.show);
+router.post("/", validateFactoryCreate, ctrl.create);
+router.put("/:id", validateFactoryUpdate, ctrl.update);
+router.delete("/:id", ctrl.destroy);
 
-// 목록
-router.get("/", pagination, ctrl.list);
-
-// 상세
-router.get("/:id", idParam, ctrl.detail);
-
-// 생성
-router.post("/", validateFactory, ctrl.create);
-
-// 수정(일부 필드만 보낼 수도 있으므로 validate는 요청 본문 유효성에 맞게 사용)
-router.patch("/:id", idParam, validateFactory, ctrl.update);
-
-// 삭제
-router.delete("/:id", idParam, ctrl.remove);
+// processes 관리
+router.get("/:id/processes", ctrl.show); // 포함 반환(상동)
+router.post("/:id/processes", ctrl.addProcesses); // body: { processIds: [1,2,3] }
+router.delete("/:id/processes/:processId", ctrl.removeProcess);
 
 module.exports = router;

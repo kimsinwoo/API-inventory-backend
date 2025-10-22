@@ -1,59 +1,27 @@
-"use strict";
-
 const db = require("../../models");
-const { Op } = require("sequelize");
+const { Process, Factory } = db;
 
-async function list({ page, limit, offset, search }) {
-  const where = {};
-  if (search && search.trim().length > 0) {
-    where.name = { [Op.like]: `%${search.trim()}%` };
-  }
+exports.listProcesses = async () => {
+  return Process.findAll({ order: [["id", "ASC"]] });
+};
 
-  const { rows, count } = await db.Process.findAndCountAll({
-    where,
-    order: [["id", "DESC"]],
-    limit,
-    offset,
+exports.getProcess = async (id) => {
+  return Process.findByPk(id, {
+    include: [{ model: Factory, as: "factories", through: { attributes: [] } }],
   });
+};
 
-  return {
-    items: rows,
-    totalItems: count,
-    totalPages: Math.ceil(count / limit),
-    page,
-    limit,
-  };
-}
+exports.createProcess = async ({ name }) => {
+  return Process.create({ name });
+};
 
-async function getById(id) {
-  const found = await db.Process.findByPk(id, {
-    include: [{ model: db.Factory }],
-  });
-  return found;
-}
+exports.updateProcess = async (id, { name }) => {
+  const proc = await Process.findByPk(id);
+  if (!proc) return null;
+  await proc.update({ name });
+  return proc;
+};
 
-async function create({ name }) {
-  const created = await db.Process.create({ name });
-  return created;
-}
-
-async function update(id, { name }) {
-  const found = await db.Process.findByPk(id);
-  if (!found) {
-    const e = new Error("Process not found");
-    e.statusCode = 404;
-    throw e;
-  }
-  await found.update({ name });
-  return found;
-}
-
-async function remove(id) {
-  return db.sequelize.transaction(async (t) => {
-    await db.Factory.update({ process_id: null }, { where: { process_id: id }, transaction: t });
-    const deleted = await db.Process.destroy({ where: { id }, transaction: t });
-    return deleted;
-  });
-}
-
-module.exports = { list, getById, create, update, remove };
+exports.deleteProcess = async (id) => {
+  return Process.destroy({ where: { id } });
+};
