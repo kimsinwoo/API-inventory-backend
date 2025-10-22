@@ -14,11 +14,11 @@ module.exports = (sequelize) => {
     {
       id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
       bom_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-      item_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false }, // 원재료/반제품 등
+      item_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false }, 
       quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
-      unit: { type: DataTypes.STRING(16), allowNull: false }, // 유연하게 문자열로 관리(g, kg, EA, BOX, PCS 등)
+      unit: { type: DataTypes.STRING(16), allowNull: false }, 
       sort_order: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
-      loss_rate: { type: DataTypes.DECIMAL(5, 4), allowNull: false, defaultValue: 0 }, // 0.0500 = 5% 손실률
+      loss_rate: { type: DataTypes.DECIMAL(5, 4), allowNull: false, defaultValue: 0 }, 
     },
     { sequelize, modelName: "BOMComponent", tableName: "BOMComponents", timestamps: true, underscored: true }
   );

@@ -1,7 +1,6 @@
 const db = require("../../models");
 const { Items, Factory, StorageCondition } = db;
 
-// 카테고리(한글/영문 혼용) → DB ENUM 매핑
 function mapCategory(input) {
   if (!input) return null;
   const t = String(input).trim();
@@ -19,7 +18,6 @@ function mapCategory(input) {
   return map[t] || null;
 }
 
-// 단위(한글/소문자) → DB ENUM("kg","g","EA","BOX","PCS") 매핑
 function mapUnit(input) {
   if (!input) return null;
   const t = String(input).trim().toLowerCase();
@@ -35,7 +33,6 @@ function mapUnit(input) {
   return map[t] || null;
 }
 
-// storage 값(숫자 id 또는 '냉장/냉동/상온' 이름) → storage_condition_id 해석
 async function resolveStorageConditionId(storage) {
   if (storage == null || storage === "") return null;
   if (!isNaN(Number(storage))) return Number(storage);
@@ -97,8 +94,8 @@ exports.create = async (payload) => {
   return Items.create({
     code,
     name,
-    category: cat,                 // ENUM("RawMaterial","SemiFinished","Finished","Supply")
-    unit: uni,                     // ENUM("kg","g","EA","BOX","PCS")
+    category: cat,
+    unit: uni,
     factory_id: factoryId || null,
     storage_condition_id: storage_condition_id,
     shortage: Number(shortage ?? 5),

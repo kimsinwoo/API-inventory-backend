@@ -1,4 +1,3 @@
-// src/services/authService.js
 const bcrypt = require("bcryptjs");
 const { createSession } = require("../utils/sessionAuth");
 

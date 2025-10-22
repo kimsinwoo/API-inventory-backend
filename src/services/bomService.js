@@ -9,7 +9,6 @@ async function resolveItemId({ itemId, itemCode }) {
   return item ? item.id : null;
 }
 
-// 리스트 + 검색 + 페이지네이션
 exports.list = async ({ search = "", page = 1, limit = 50 }) => {
   const where = search
     ? { name: { [Op.like]: `%${search}%` } }
@@ -83,8 +82,7 @@ exports.update = async (id, { name, description, lines }) => {
       },
       { transaction: t }
     );
-
-    // lines가 주어지면 전체 교체
+    
     if (Array.isArray(lines)) {
       await BOMComponent.destroy({ where: { bom_id: id }, transaction: t });
 

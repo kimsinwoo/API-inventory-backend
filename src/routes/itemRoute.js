@@ -4,7 +4,6 @@ const { validateItemCreate, validateItemUpdate } = require("../middleware/valida
 
 const router = express.Router();
 
-// /api/items
 router.get("/", ctrl.index);
 router.get("/by-code/:code", ctrl.showByCode);
 router.get("/:id", ctrl.showById);

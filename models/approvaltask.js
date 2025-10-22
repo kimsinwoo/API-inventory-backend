@@ -19,7 +19,7 @@ module.exports = (sequelize) => {
       required_approver_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
       order: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
       assignee_role_code: { type: DataTypes.ENUM(...ROLE_ENUM), allowNull: false },
-      assignee_user_id: { type: DataTypes.STRING(255), allowNull: true }, // Users.id 스냅샷
+      assignee_user_id: { type: DataTypes.STRING(255), allowNull: true }, 
       status: { type: DataTypes.ENUM(...TASK_STATUS), allowNull: false, defaultValue: "WAITING" },
       signed_at: { type: DataTypes.DATE, allowNull: true },
       signature_image_path: { type: DataTypes.TEXT, allowNull: true },

@@ -4,7 +4,6 @@ const { validateProcessCreate } = require("../middleware/validate");
 
 const router = express.Router();
 
-// /api/processes
 router.get("/", ctrl.index);
 router.get("/:id", ctrl.show);
 router.post("/", validateProcessCreate, ctrl.create);

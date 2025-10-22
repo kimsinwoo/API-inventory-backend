@@ -22,7 +22,6 @@ exports.validateItemCreate = (req, res, next) => {
       return res.status(400).json({ ok: false, message: "shortage는 숫자여야 합니다." });
     }
   
-    // 캐스팅
     if (factoryId !== undefined) req.body.factoryId = Number(factoryId);
     if (shortage !== undefined) req.body.shortage = Number(shortage);
   

@@ -16,7 +16,7 @@ module.exports = (sequelize) => {
       approval_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
       approval_task_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
       actor_user_id: { type: DataTypes.STRING(255), allowNull: true },
-      action: { type: DataTypes.STRING(50), allowNull: false }, // TASK_REQUESTED / TASK_APPROVED / AUTO_SKIPPED ...
+      action: { type: DataTypes.STRING(50), allowNull: false }, 
       detail: { type: DataTypes.JSON, allowNull: true },
     },
     { sequelize, modelName: "AuditLog", tableName: "AuditLogs", timestamps: true, underscored: true }

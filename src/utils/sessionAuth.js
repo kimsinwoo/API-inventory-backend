@@ -1,4 +1,3 @@
-// src/utils/sessionAuth.js
 
 async function createSession(req, user) {
   req.session.userId = user.id;

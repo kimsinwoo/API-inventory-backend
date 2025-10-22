@@ -27,7 +27,6 @@ module.exports = {
       const created = await svc.create(req.body);
       res.status(201).json({ ok: true, data: created });
     } catch (e) {
-      // code unique 충돌 등
       if (e && e.name === "SequelizeUniqueConstraintError") {
         return res.status(409).json({ ok: false, message: "이미 존재하는 code 입니다." });
       }

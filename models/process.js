@@ -19,7 +19,7 @@ module.exports = (sequelize) => {
   Process.init(
     {
       id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
-      name: { type: DataTypes.STRING(100), allowNull: false }, // 예: 전처리, 가공, 원재료 입고
+      name: { type: DataTypes.STRING(100), allowNull: false }, 
     },
     { sequelize, modelName: "Process", tableName: "Processes", timestamps: true, underscored: true }
   );

@@ -4,8 +4,7 @@ const { validateBOMCreate, validateBOMUpdate } = require("../middleware/validate
 
 const router = express.Router();
 
-// /api/boms
-router.get("/", ctrl.index);             // ?search=&page=&limit=
+router.get("/", ctrl.index);
 router.get("/:id", ctrl.show);
 router.post("/", validateBOMCreate, ctrl.create);
 router.put("/:id", validateBOMUpdate, ctrl.update);

@@ -5,7 +5,7 @@ const { Model, DataTypes } = require("sequelize");
 module.exports = (sequelize) => {
   class Factory extends Model {
     static associate(models) {
-      // 기존 연관 (있으면 유지)
+      
       if (models.Items) {
         Factory.hasMany(models.Items, {
           foreignKey: "factory_id",

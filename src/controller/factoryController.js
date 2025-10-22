@@ -39,7 +39,7 @@ exports.destroy = async (req, res, next) => {
 
 exports.addProcesses = async (req, res, next) => {
   try {
-    const { processIds } = req.body; // [1,2,3]
+    const { processIds } = req.body; 
     const updated = await svc.addFactoryProcesses(req.params.id, processIds);
     if (!updated) return res.status(404).json({ ok: false, message: "Factory not found" });
     res.json({ ok: true, data: updated });
