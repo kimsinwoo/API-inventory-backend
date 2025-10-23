@@ -1,12 +1,11 @@
+// models/Items.js
 "use strict";
-
 const { Model, DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
   class Items extends Model {
     static associate(models) {
       Items.belongsTo(models.Factory, { foreignKey: "factory_id" });
-      Items.belongsTo(models.StorageCondition, { foreignKey: "storage_condition_id" });
       Items.belongsTo(models.BOM, { foreignKey: "bom_id" });
       Items.hasMany(models.Inventories, { foreignKey: "item_id" });
     }
@@ -27,11 +26,11 @@ module.exports = (sequelize) => {
         defaultValue: "kg",
       },
       factory_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
-      storage_condition_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      storageTemp: { type: DataTypes.STRING(10), allowNull: true },
       bom_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
       shortage: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 5 },
-      first_received_at: { type: DataTypes.DATE },
-      latest_received_at: { type: DataTypes.DATE },
+      expiration_date: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      wholesale_price: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true, defaultValue: 0 }, // ✅ NEW (원)
     },
     { sequelize, modelName: "Items", tableName: "Items", timestamps: true, underscored: true }
   );

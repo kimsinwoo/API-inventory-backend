@@ -31,16 +31,32 @@ exports.list = async ({ search = "", page = 1, limit = 50 }) => {
   return { rows, count, page: Number(page), limit: Number(limit) };
 };
 
+// services/bomService.js (또는 현재 get 이 있는 파일)
+
 exports.get = async (id) => {
   return BOM.findByPk(id, {
-    include: [{
-      model: BOMComponent,
-      as: "components",
-      include: [{ model: Items, as: "item", attributes: ["id", "code", "name", "unit", "category"] }],
-    }],
-    order: [[{ model: BOMComponent, as: "components" }, "sort_order", "ASC"]],
+    attributes: ["id", "name", "description"],
+    include: [
+      {
+        model: BOMComponent,
+        as: "components",
+        attributes: ["id", "bom_id", "item_id", "quantity", "unit", "sort_order", "loss_rate"],
+        include: [
+          {
+            model: Items,
+            as: "item",
+            attributes: ["id", "code", "name", "unit", "category"],
+          },
+        ],
+      },
+    ],
+    order: [
+      [{ model: BOMComponent, as: "components" }, "sort_order", "ASC"],
+      [{ model: BOMComponent, as: "components" }, "id", "ASC"],
+    ],
   });
 };
+
 
 exports.create = async ({ name, description, lines = [] }) => {
   const t = await db.sequelize.transaction();

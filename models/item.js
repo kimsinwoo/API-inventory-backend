@@ -18,6 +18,7 @@ module.exports = (sequelize) => {
       factory_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
       storage_condition_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
       lot_number: { type: DataTypes.STRING(50), allowNull: false },
+      wholesale_price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
       quantity: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
       received_at: { type: DataTypes.DATE, allowNull: false },
       first_received_at: { type: DataTypes.DATE, allowNull: false },

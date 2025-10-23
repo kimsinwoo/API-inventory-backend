@@ -25,6 +25,21 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", indexRoute);
 
+// 에러 핸들러
+app.use((err, req, res, next) => {
+  console.error('=== ERROR ===');
+  console.error('Message:', err.message);
+  console.error('Stack:', err.stack);
+  console.error('Body:', req.body);
+  console.error('=============');
+  
+  res.status(err.status || 500).json({
+    ok: false,
+    message: err.message || 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+});
+
 async function startServer() {
   try {
     await db.sequelize.sync({ force: false });

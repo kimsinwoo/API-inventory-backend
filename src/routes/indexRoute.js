@@ -10,6 +10,7 @@ router.use("/processes", require("./processRoute"));
 router.use("/factories", require("./factoryRoute"));
 router.use("/items", require("./itemRoute"));
 router.use("/boms", require("./bomRoute"));
+router.use("/inventories", require("./inventoryRoute"));
 
 // router.use("/temperature", temperatureRoute);
 

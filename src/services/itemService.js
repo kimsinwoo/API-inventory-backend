@@ -1,125 +1,91 @@
-const db = require("../../models");
-const { Items, Factory, StorageCondition } = db;
+// src/services/itemService.js
+const db = require('../../models');
+const { Items, Factory } = db;
 
-function mapCategory(input) {
-  if (!input) return null;
-  const t = String(input).trim();
-  const map = {
-    "원재료": "RawMaterial",
-    "반재료": "SemiFinished",
-    "반제품": "SemiFinished",
-    "완제품": "Finished",
-    "소모품": "Supply",
-    RawMaterial: "RawMaterial",
-    SemiFinished: "SemiFinished",
-    Finished: "Finished",
-    Supply: "Supply",
-  };
-  return map[t] || null;
-}
-
-function mapUnit(input) {
-  if (!input) return null;
-  const t = String(input).trim().toLowerCase();
-  const map = {
-    kg: "kg",
-    g: "g",
-    ea: "EA",
-    box: "BOX",
-    pcs: "PCS",
-    piece: "PCS",
-    pc: "PCS",
-  };
-  return map[t] || null;
-}
-
-async function resolveStorageConditionId(storage) {
-  if (storage == null || storage === "") return null;
-  if (!isNaN(Number(storage))) return Number(storage);
-
-  const name = String(storage).trim();
-  const synonyms = {
-    "냉장": ["냉장", "cold", "COLD"],
-    "냉동": ["냉동", "freezer", "FROZEN", "동결"],
-    "상온": ["상온", "room", "ROOM", "실온"],
-  };
-  let names = [];
-  if (synonyms["냉장"].includes(name)) names = synonyms["냉장"];
-  else if (synonyms["냉동"].includes(name)) names = synonyms["냉동"];
-  else if (synonyms["상온"].includes(name)) names = synonyms["상온"];
-  else names = [name];
-
-  const cond = await StorageCondition.findOne({ where: { name: names } });
-  return cond ? cond.id : null;
-}
-
-exports.list = async () => {
+exports.listItems = async () => {
   return Items.findAll({
     include: [
-      { model: Factory, attributes: ["id", "name", "type"] },
-      { model: StorageCondition, attributes: ["id", "name"] },
+      { model: Factory },
     ],
-    order: [["code", "ASC"]],
+    order: [['id', 'DESC']],
   });
 };
 
-exports.getById = async (id) => {
+exports.getItem = async (id) => {
   return Items.findByPk(id, {
     include: [
-      { model: Factory, attributes: ["id", "name", "type"] },
-      { model: StorageCondition, attributes: ["id", "name"] },
+      { model: Factory },
     ],
   });
 };
 
-exports.getByCode = async (code) => {
+exports.getItemByCode = async (code) => {
   return Items.findOne({
     where: { code },
     include: [
-      { model: Factory, attributes: ["id", "name", "type"] },
-      { model: StorageCondition, attributes: ["id", "name"] },
+      { model: Factory },
     ],
   });
 };
 
-exports.create = async (payload) => {
+exports.createItem = async (payload) => {
+  // payload는 validateItemCreate에서 표준화됨
   const {
-    code, name, category, factoryId, storage, shortage, unit,
+    code, name, category, unit,
+    factory_id,
+    shortage, expiration_date,
+    wholesale_price, // 있으면 저장(모델에 없으면 무시)
   } = payload;
 
-  const cat = mapCategory(category);
-  const uni = mapUnit(unit);
-  const storage_condition_id = await resolveStorageConditionId(storage);
+  // factory_id가 제공된 경우 해당 factory가 존재하는지 확인
+  if (factory_id != null && !Number.isNaN(factory_id)) {
+    const factoryExists = await Factory.findByPk(factory_id);
+    if (!factoryExists) {
+      const error = new Error(`Factory ID ${factory_id}가 존재하지 않습니다.`);
+      error.status = 400;
+      throw error;
+    }
+  }
 
-  return Items.create({
+  // factory_id가 유효한 경우만 포함
+  const data = {
     code,
     name,
-    category: cat,
-    unit: uni,
-    factory_id: factoryId || null,
-    storage_condition_id: storage_condition_id,
-    shortage: Number(shortage ?? 5),
-  });
+    category,
+    unit,
+    shortage,
+    expiration_date,
+    wholesale_price,
+  };
+
+  // factory_id가 있고 유효한 경우에만 추가
+  if (factory_id != null && !Number.isNaN(factory_id)) {
+    data.factory_id = factory_id;
+  }
+
+  return Items.create(data);
 };
 
-exports.update = async (id, payload) => {
+exports.updateItem = async (id, body) => {
   const item = await Items.findByPk(id);
   if (!item) return null;
 
-  const data = {};
-  if (payload.name !== undefined) data.name = payload.name;
-  if (payload.category !== undefined) data.category = mapCategory(payload.category);
-  if (payload.unit !== undefined) data.unit = mapUnit(payload.unit);
-  if (payload.factoryId !== undefined) data.factory_id = Number(payload.factoryId) || null;
-  if (payload.shortage !== undefined) data.shortage = Number(payload.shortage);
-  if (payload.storage !== undefined) {
-    data.storage_condition_id = await resolveStorageConditionId(payload.storage);
-  }
+  // 부분 업데이트 허용 + 안전 매핑
+  const patch = {};
+  if (body.code != null) patch.code = String(body.code).trim();
+  if (body.name != null) patch.name = String(body.name).trim();
+  if (body.category != null) patch.category = body.category; // 필요 시 별도 norm 함수 사용
+  if (body.unit != null) patch.unit = body.unit;
+  if (body.factoryId != null) patch.factory_id = Number(body.factoryId);
+  if (body.shortage != null) patch.shortage = Number(body.shortage);
+  if (body.expiration_date != null) patch.expiration_date = Number(body.expiration_date);
+  if (body.shelfLife != null) patch.expiration_date = Number(body.shelfLife);
+  if (body.wholesalePrice != null) patch.wholesale_price = Number(body.wholesalePrice);
 
-  await item.update(data);
-  return this.getById(id);
+  await item.update(patch);
+  return this.getItem(id);
 };
 
-exports.destroy = async (id) => {
+exports.deleteItem = async (id) => {
   return Items.destroy({ where: { id } });
 };
