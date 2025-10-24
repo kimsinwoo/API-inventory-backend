@@ -23,13 +23,7 @@ async function authenticate(req, res, next) {
     const sessionAge = now - (req.session.createdAt || 0);
 
     if (sessionAge > SESSION_MAX_AGE) {
-      const db = req.app.get("db");
-      const user = await db.User.findByPk(req.session.userId);
-      if (!user) return res.status(401).json({ message: "사용자 없음" });
-
-      const user_profile = await db.userprofile
-
-      await createSession(req, user);
+      return res.status(401).json({ message: "세션 만료" });
     }
 
     next();

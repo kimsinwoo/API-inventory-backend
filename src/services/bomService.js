@@ -18,10 +18,16 @@ exports.list = async ({ search = "", page = 1, limit = 50 }) => {
 
   const { rows, count } = await BOM.findAndCountAll({
     where,
+    attributes: ["id", "name", "description", "created_at", "updated_at"], // BOM 필드
     include: [{
       model: BOMComponent,
       as: "components",
-      include: [{ model: Items, as: "item", attributes: ["id", "code", "name", "unit", "category"] }],
+      attributes: ["id", "quantity", "unit", "sort_order", "loss_rate"], // BOMComponent 필드
+      include: [{ 
+        model: Items, 
+        as: "item", 
+        attributes: ["id", "code", "name", "category"] // Items 필드 (unit 제거)
+      }],
     }],
     order: [["updated_at", "DESC"], [{ model: BOMComponent, as: "components" }, "sort_order", "ASC"]],
     limit: Number(limit),

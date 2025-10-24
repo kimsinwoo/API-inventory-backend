@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const session = require("express-session");
 
 const db = require("../models");
 const indexRoute = require("./routes/indexRoute");
@@ -19,6 +20,19 @@ app.use(
   })
 );
 
+// 세션 설정
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "your-secret-key-change-this-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // https 사용 시 true로 변경
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7일
+    },
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

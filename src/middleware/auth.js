@@ -3,20 +3,191 @@
 const ROLE_BY_LEVEL = { 1: "EMPLOYEE", 2: "TEAM_LEAD", 3: "DIRECTOR", 4: "CEO" };
 
 module.exports = (models) => {
-  return async function requireAuth(req, res, next) {
+  async function getUserWithPositionAndProfile(userId) {
+    const user = await models.User.findByPk(userId, {
+      include: [
+        {
+          model: models.UserProfile,
+          as: "UserProfile",
+        },
+        {
+          model: models.Position,
+          as: "Positions",
+          order: [["level", "DESC"]],
+        },
+      ],
+    });
+
+    if (!user) return null;
+
+    const positions = user.Positions || [];
+    let topPosition = null;
+    if (positions.length > 0) {
+      positions.sort((a, b) => b.level - a.level);
+      topPosition = positions[0];
+    }
+    const roleCode = topPosition ? (ROLE_BY_LEVEL[topPosition.level] || "STAFF") : "STAFF";
+
+    return {
+      id: user.id,
+      profile_id: user.profile_id,
+      profile: user.UserProfile,
+      position: topPosition,
+      roleCode,
+    };
+  }
+
+  const requireAuth = async function (req, res, next) {
     try {
       const auth = req.headers.authorization || "";
-      if (!auth.startsWith("Bearer ")) return res.status(401).json({ ok: false, message: "Unauthorized" });
+      if (!auth.startsWith("Bearer "))
+        return res.status(401).json({ ok: false, message: "Unauthorized" });
 
-      const userId = auth.replace("Bearer ", "");
-      const pos = await models.Position.findOne({ where: { user_id: userId }, order: [["level", "DESC"]] });
-      const roleCode = ROLE_BY_LEVEL[pos?.level] || "STAFF";
+      const userId = auth.replace("Bearer ", "").trim();
 
-      req.user = { id: userId, roleCode };
+      const userInfo = await getUserWithPositionAndProfile(userId);
+      if (!userInfo) return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      req.user = userInfo;
       next();
     } catch (e) {
       console.error("auth error", e);
       return res.status(401).json({ ok: false, message: "Unauthorized" });
     }
+  };
+
+  const requireAdmin = async function (req, res, next) {
+    try {
+      const auth = req.headers.authorization || "";
+      if (!auth.startsWith("Bearer "))
+        return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      const userId = auth.replace("Bearer ", "").trim();
+
+      const userInfo = await getUserWithPositionAndProfile(userId);
+      if (!userInfo) return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      if (userInfo.roleCode !== "CEO" && userInfo.roleCode !== "DIRECTOR") {
+        return res.status(403).json({ ok: false, message: "Forbidden" });
+      }
+
+      req.user = userInfo;
+      next();
+    } catch (e) {
+      console.error("auth error", e);
+      return res.status(401).json({ ok: false, message: "Unauthorized" });
+    }
+  };
+
+  const requireUser = async function (req, res, next) {
+    try {
+      const auth = req.headers.authorization || "";
+      if (!auth.startsWith("Bearer "))
+        return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      const userId = auth.replace("Bearer ", "").trim();
+      const userInfo = await getUserWithPositionAndProfile(userId);
+      if (!userInfo) return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      req.user = userInfo;
+      next();
+    } catch (e) {
+      console.error("auth error", e);
+      return res.status(401).json({ ok: false, message: "Unauthorized" });
+    }
+  };
+
+  const requireStaff = async function (req, res, next) {
+    try {
+      const auth = req.headers.authorization || "";
+      if (!auth.startsWith("Bearer "))
+        return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      const userId = auth.replace("Bearer ", "").trim();
+      const userInfo = await getUserWithPositionAndProfile(userId);
+      if (!userInfo) return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      req.user = userInfo;
+      next();
+    } catch (e) {
+      console.error("auth error", e);
+      return res.status(401).json({ ok: false, message: "Unauthorized" });
+    }
+  };
+
+  const requireTeamLead = async function (req, res, next) {
+    try {
+      const auth = req.headers.authorization || "";
+      if (!auth.startsWith("Bearer "))
+        return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      const userId = auth.replace("Bearer ", "").trim();
+      const userInfo = await getUserWithPositionAndProfile(userId);
+      if (!userInfo) return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      if (!["TEAM_LEAD", "DIRECTOR", "CEO"].includes(userInfo.roleCode)) {
+        return res.status(403).json({ ok: false, message: "Forbidden" });
+      }
+
+      req.user = userInfo;
+      next();
+    } catch (e) {
+      console.error("auth error", e);
+      return res.status(401).json({ ok: false, message: "Unauthorized" });
+    }
+  };
+
+  const requireDirector = async function (req, res, next) {
+    try {
+      const auth = req.headers.authorization || "";
+      if (!auth.startsWith("Bearer "))
+        return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      const userId = auth.replace("Bearer ", "").trim();
+      const userInfo = await getUserWithPositionAndProfile(userId);
+      if (!userInfo) return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      if (userInfo.roleCode !== "DIRECTOR" && userInfo.roleCode !== "CEO") {
+        return res.status(403).json({ ok: false, message: "Forbidden" });
+      }
+
+      req.user = userInfo;
+      next();
+    } catch (e) {
+      console.error("auth error", e);
+      return res.status(401).json({ ok: false, message: "Unauthorized" });
+    }
+  };
+
+  const requireCEO = async function (req, res, next) {
+    try {
+      const auth = req.headers.authorization || "";
+      if (!auth.startsWith("Bearer "))
+        return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      const userId = auth.replace("Bearer ", "").trim();
+      const userInfo = await getUserWithPositionAndProfile(userId);
+      if (!userInfo) return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+      if (userInfo.roleCode !== "CEO") {
+        return res.status(403).json({ ok: false, message: "Forbidden" });
+      }
+
+      req.user = userInfo;
+      next();
+    } catch (e) {
+      console.error("auth error", e);
+      return res.status(401).json({ ok: false, message: "Unauthorized" });
+    }
+  };
+
+  return {
+    requireAuth,
+    requireAdmin,
+    requireUser,
+    requireStaff,
+    requireTeamLead,
+    requireDirector,
+    requireCEO,
   };
 };
