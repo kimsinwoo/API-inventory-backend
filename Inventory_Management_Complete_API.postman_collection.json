@@ -1271,6 +1271,193 @@
           }
         }
       ]
+    },
+    {
+      "name": "✅ 전자 결재 (Approval)",
+      "item": [
+        {
+          "name": "결재 대기 목록 (받은 결재함)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/approval/approvals/inbox",
+              "host": ["{{baseUrl}}"],
+              "path": ["approval", "approvals", "inbox"]
+            },
+            "description": "내가 결재해야 할 문서 목록 조회"
+          }
+        },
+        {
+          "name": "결재 문서 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/approval/approvals/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["approval", "approvals", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "결재 문서 상세 정보 (결재선, 데이터, 첨부파일 포함)"
+          }
+        },
+        {
+          "name": "결재 승인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signatureImagePath\": \"/signatures/user123.png\",\n  \"comment\": \"승인합니다\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/approval/approvals/:id/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["approval", "approvals", ":id", "approve"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "결재 문서 승인"
+          }
+        },
+        {
+          "name": "결재 반려",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"내용 확인 후 재상신 바랍니다\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/approval/approvals/:id/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["approval", "approvals", ":id", "reject"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "결재 문서 반려"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🌡️ 온도 관리 (Temperature)",
+      "item": [
+        {
+          "name": "온도 기록 추가",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"factoryId\": 1,\n  \"location\": \"냉장고 A-1\",\n  \"temperature\": -18.5,\n  \"humidity\": 45,\n  \"recordedAt\": \"2024-10-27T10:00:00Z\",\n  \"note\": \"정상 범위\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/temperature",
+              "host": ["{{baseUrl}}"],
+              "path": ["temperature"]
+            },
+            "description": "온도/습도 기록 추가"
+          }
+        },
+        {
+          "name": "온도 기록 조회",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/temperature?factoryId=1&startDate=2024-10-01&endDate=2024-10-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["temperature"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-10-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-10-31"
+                }
+              ]
+            },
+            "description": "온도/습도 기록 목록 조회"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 관리자 (Admin)",
+      "item": [
+        {
+          "name": "사용자 목록 조회",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"]
+            },
+            "description": "전체 사용자 목록 조회 (관리자 전용)"
+          }
+        },
+        {
+          "name": "사용자 권한 부여",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 5,\n  \"authority\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "role"]
+            },
+            "description": "사용자에게 권한 부여 (관리자 전용)"
+          }
+        }
+      ]
     }
   ]
 }

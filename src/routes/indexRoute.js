@@ -14,6 +14,7 @@ router.use("/inventories", require("./inventoryRoute"));
 router.use("/inventory-transactions", require("./inventoryTransactionRoute"));
 router.use("/warehouse-transfers", require("./warehouseTransferRoute"));
 router.use("/storage-conditions", require("./storageConditionRoute"));
+router.use("/order-import", require("./orderImportRoute"));
 
 // router.use("/temperature", temperatureRoute);
 
