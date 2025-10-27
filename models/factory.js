@@ -37,7 +37,7 @@ module.exports = (sequelize) => {
   Factory.init(
     {
       id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
-      type: { type: DataTypes.ENUM("1PreProcessing", "2Manufacturing"), allowNull: false },
+      type: { type: DataTypes.ENUM("1PreProcessing", "2Manufacturing", "Warehouse"), allowNull: false },
       name: { type: DataTypes.STRING(100), allowNull: false },
       address: { type: DataTypes.STRING(255) },
     },

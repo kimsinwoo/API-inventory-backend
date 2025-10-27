@@ -1,0 +1,1276 @@
+{
+  "info": {
+    "name": "재고관리 시스템 API (완전판)",
+    "description": "재고관리 시스템의 모든 API 엔드포인트 - 라벨 프린트 기능 포함",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "inventory-management-v2"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 인증 (Auth)",
+      "item": [
+        {
+          "name": "로그인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "회원가입",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"홍길동\",\n  \"positionId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "join"]
+            }
+          }
+        },
+        {
+          "name": "로그아웃",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "내 정보 조회",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "전체 사용자 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", ""]
+            }
+          }
+        },
+        {
+          "name": "사용자 상세 조회",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "사용자 정보 수정",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"홍길동\",\n  \"positionId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "사용자 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏭 공장 (Factories)",
+      "item": [
+        {
+          "name": "공장 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/factories",
+              "host": ["{{baseUrl}}"],
+              "path": ["factories"]
+            }
+          }
+        },
+        {
+          "name": "공장 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/factories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["factories", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공장 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"전처리 공장\",\n  \"type\": \"1PreProcessing\",\n  \"address\": \"서울시 강남구\",\n  \"capacity\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/factories",
+              "host": ["{{baseUrl}}"],
+              "path": ["factories"]
+            }
+          }
+        },
+        {
+          "name": "공장 수정",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"전처리 공장 (수정)\",\n  \"capacity\": 1500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/factories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["factories", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공장 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/factories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["factories", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공장 공정 조회",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/factories/:id/processes",
+              "host": ["{{baseUrl}}"],
+              "path": ["factories", ":id", "processes"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공장 공정 추가",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"processIds\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/factories/:id/processes",
+              "host": ["{{baseUrl}}"],
+              "path": ["factories", ":id", "processes"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공장 공정 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/factories/:id/processes/:processId",
+              "host": ["{{baseUrl}}"],
+              "path": ["factories", ":id", "processes", ":processId"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                },
+                {
+                  "key": "processId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚙️ 공정 (Processes)",
+      "item": [
+        {
+          "name": "공정 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/processes",
+              "host": ["{{baseUrl}}"],
+              "path": ["processes"]
+            }
+          }
+        },
+        {
+          "name": "공정 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/processes/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["processes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공정 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"해동\",\n  \"description\": \"냉동 원료 해동 공정\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/processes",
+              "host": ["{{baseUrl}}"],
+              "path": ["processes"]
+            }
+          }
+        },
+        {
+          "name": "공정 수정",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"해동 (수정)\",\n  \"description\": \"냉동 원료 해동 공정 업데이트\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/processes/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["processes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공정 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/processes/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["processes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 품목 (Items)",
+      "item": [
+        {
+          "name": "품목 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["items"]
+            }
+          }
+        },
+        {
+          "name": "품목 상세 (ID)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/items/id/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["items", "id", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "품목 상세 (코드)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/items/code/:code",
+              "host": ["{{baseUrl}}"],
+              "path": ["items", "code", ":code"],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "ITEM-001"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "품목 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"ITEM-001\",\n  \"name\": \"닭가슴살\",\n  \"category\": \"원재료\",\n  \"unit\": \"kg\",\n  \"storageConditionId\": 1,\n  \"expiryDays\": 365,\n  \"safetyStock\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["items"]
+            }
+          }
+        },
+        {
+          "name": "품목 수정",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"닭가슴살 (수정)\",\n  \"safetyStock\": 150\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/items/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "품목 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/items/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 BOM (Bill of Materials)",
+      "item": [
+        {
+          "name": "BOM 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/boms",
+              "host": ["{{baseUrl}}"],
+              "path": ["boms"]
+            }
+          }
+        },
+        {
+          "name": "BOM 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/boms/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["boms", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "BOM 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"닭가슴살 제품 BOM\",\n  \"targetItemId\": 10,\n  \"targetQuantity\": 100,\n  \"unit\": \"kg\",\n  \"components\": [\n    {\n      \"sourceItemId\": 1,\n      \"quantity\": 50,\n      \"unit\": \"kg\"\n    },\n    {\n      \"sourceItemId\": 2,\n      \"quantity\": 30,\n      \"unit\": \"kg\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/boms",
+              "host": ["{{baseUrl}}"],
+              "path": ["boms"]
+            }
+          }
+        },
+        {
+          "name": "BOM 수정",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"닭가슴살 제품 BOM (수정)\",\n  \"targetQuantity\": 120\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/boms/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["boms", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "BOM 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/boms/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["boms", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🌡️ 보관 조건 (Storage Conditions)",
+      "item": [
+        {
+          "name": "보관 조건 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storage-conditions",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage-conditions"]
+            }
+          }
+        },
+        {
+          "name": "보관 조건 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storage-conditions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage-conditions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "보관 조건 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"냉동 보관\",\n  \"minTemperature\": -18,\n  \"maxTemperature\": -15,\n  \"minHumidity\": 40,\n  \"maxHumidity\": 60,\n  \"description\": \"냉동 식품 보관 조건\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/storage-conditions",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage-conditions"]
+            }
+          }
+        },
+        {
+          "name": "보관 조건 수정",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"냉동 보관 (수정)\",\n  \"maxTemperature\": -12\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/storage-conditions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage-conditions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "보관 조건 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storage-conditions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage-conditions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 재고 (Inventories - 기존)",
+      "item": [
+        {
+          "name": "재고 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventories?itemId=1&factoryId=1&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventories"],
+              "query": [
+                {
+                  "key": "itemId",
+                  "value": "1"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "재고 요약",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventories/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventories", "summary"]
+            }
+          }
+        },
+        {
+          "name": "창고 이용률",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventories/utilization",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventories", "utilization"]
+            }
+          }
+        },
+        {
+          "name": "이동 이력",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventories/movements",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventories", "movements"]
+            }
+          }
+        },
+        {
+          "name": "재고 입고 (기존)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"storageConditionId\": 1,\n  \"lotNumber\": \"LOT-20241027-001\",\n  \"quantity\": 100,\n  \"wholesalePrice\": 50000,\n  \"unit\": \"kg\",\n  \"receivedAt\": \"2024-10-27T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventories/receive",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventories", "receive"]
+            }
+          }
+        },
+        {
+          "name": "재고 출고 (기존)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"quantity\": 50,\n  \"issuedAt\": \"2024-10-27T14:00:00Z\",\n  \"purpose\": \"판매\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventories/issue",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventories", "issue"]
+            }
+          }
+        },
+        {
+          "name": "재고 이동 (기존)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": 1,\n  \"fromFactoryId\": 1,\n  \"toFactoryId\": 2,\n  \"quantity\": 30,\n  \"transferredAt\": \"2024-10-27T12:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventories/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventories", "transfer"]
+            }
+          }
+        },
+        {
+          "name": "재고 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventories", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏷️ 입출고 트랜잭션 (라벨 프린트 포함)",
+      "item": [
+        {
+          "name": "📥 입고",
+          "item": [
+            {
+              "name": "입고 - 라벨 없음",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"storageConditionId\": 1,\n  \"lotNumber\": \"LOT-20241027-001\",\n  \"wholesalePrice\": 50000,\n  \"quantity\": 100,\n  \"unit\": \"kg\",\n  \"receivedAt\": \"2024-10-27T10:00:00Z\",\n  \"note\": \"신선 상태 양호\",\n  \"printLabel\": false\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/receive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "receive"]
+                }
+              }
+            },
+            {
+              "name": "입고 - Large 라벨 1개",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"storageConditionId\": 1,\n  \"lotNumber\": \"LOT-20241027-001\",\n  \"wholesalePrice\": 50000,\n  \"quantity\": 100,\n  \"unit\": \"kg\",\n  \"receivedAt\": \"2024-10-27T10:00:00Z\",\n  \"note\": \"신선 상태 양호\",\n  \"printLabel\": true,\n  \"labelSize\": \"large\",\n  \"labelQuantity\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/receive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "receive"]
+                }
+              }
+            },
+            {
+              "name": "입고 - Medium 라벨 3개",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"storageConditionId\": 1,\n  \"lotNumber\": \"LOT-20241027-002\",\n  \"wholesalePrice\": 50000,\n  \"quantity\": 100,\n  \"unit\": \"kg\",\n  \"receivedAt\": \"2024-10-27T10:00:00Z\",\n  \"printLabel\": true,\n  \"labelSize\": \"medium\",\n  \"labelQuantity\": 3\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/receive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "receive"]
+                }
+              }
+            },
+            {
+              "name": "입고 - Small 라벨 10개",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"storageConditionId\": 1,\n  \"lotNumber\": \"LOT-20241027-003\",\n  \"wholesalePrice\": 50000,\n  \"quantity\": 100,\n  \"unit\": \"kg\",\n  \"receivedAt\": \"2024-10-27T10:00:00Z\",\n  \"printLabel\": true,\n  \"labelSize\": \"small\",\n  \"labelQuantity\": 10\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/receive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "receive"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "📤 출고",
+          "item": [
+            {
+              "name": "출고 (FIFO)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"quantity\": 50,\n  \"unit\": \"kg\",\n  \"issuedAt\": \"2024-10-27T14:00:00Z\",\n  \"purpose\": \"판매\",\n  \"recipientName\": \"홍길동\",\n  \"recipientPhone\": \"010-1234-5678\",\n  \"shippingAddress\": \"서울시 강남구\",\n  \"note\": \"급송\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/issue",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "issue"]
+                }
+              }
+            },
+            {
+              "name": "일괄 출고",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"factoryId\": 1,\n  \"items\": [\n    {\n      \"itemId\": 1,\n      \"quantity\": 50,\n      \"unit\": \"kg\"\n    },\n    {\n      \"itemId\": 2,\n      \"quantity\": 30,\n      \"unit\": \"kg\"\n    }\n  ],\n  \"issuedAt\": \"2024-10-27T14:00:00Z\",\n  \"recipientName\": \"홍길동\",\n  \"recipientPhone\": \"010-1234-5678\",\n  \"shippingAddress\": \"서울시 강남구\",\n  \"note\": \"일괄 출고\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/batch-issue",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "batch-issue"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔄 공장 간 이동",
+          "item": [
+            {
+              "name": "공장 간 이동",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"itemId\": 1,\n  \"fromFactoryId\": 1,\n  \"toFactoryId\": 2,\n  \"quantity\": 30,\n  \"unit\": \"kg\",\n  \"transferredAt\": \"2024-10-27T12:00:00Z\",\n  \"note\": \"2공장 제조용\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/transfer",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "transfer"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "📋 조회",
+          "item": [
+            {
+              "name": "트랜잭션 목록",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions?type=receive&itemId=1&factoryId=1&startDate=2024-10-01&endDate=2024-10-31&page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "receive",
+                      "description": "receive, issue, transfer"
+                    },
+                    {
+                      "key": "itemId",
+                      "value": "1"
+                    },
+                    {
+                      "key": "factoryId",
+                      "value": "1"
+                    },
+                    {
+                      "key": "startDate",
+                      "value": "2024-10-01"
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2024-10-31"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "트랜잭션 상세",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/:id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", ":id"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "트랜잭션 통계",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/stats?startDate=2024-10-01&endDate=2024-10-31&factoryId=1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "stats"],
+                  "query": [
+                    {
+                      "key": "startDate",
+                      "value": "2024-10-01"
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2024-10-31"
+                    },
+                    {
+                      "key": "factoryId",
+                      "value": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "월별 입출고 현황 (창고 이용률)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/inventory-transactions/monthly-utilization?year=2024&month=10&factoryId=1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["inventory-transactions", "monthly-utilization"],
+                  "query": [
+                    {
+                      "key": "year",
+                      "value": "2024"
+                    },
+                    {
+                      "key": "month",
+                      "value": "10"
+                    },
+                    {
+                      "key": "factoryId",
+                      "value": "1"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🚚 공장/창고 간 이동",
+      "item": [
+        {
+          "name": "공장/창고 간 이동",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": 1,\n  \"fromFactoryId\": 1,\n  \"toFactoryId\": 3,\n  \"quantity\": 50,\n  \"unit\": \"kg\",\n  \"transferType\": \"factory_to_warehouse\",\n  \"transferredAt\": \"2024-10-27T15:00:00Z\",\n  \"note\": \"완제품 보관\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/warehouse-transfers",
+              "host": ["{{baseUrl}}"],
+              "path": ["warehouse-transfers"]
+            }
+          }
+        },
+        {
+          "name": "이동 이력 조회",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/warehouse-transfers/history?transferType=factory_to_warehouse&startDate=2024-10-01&endDate=2024-10-31&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["warehouse-transfers", "history"],
+              "query": [
+                {
+                  "key": "transferType",
+                  "value": "factory_to_warehouse",
+                  "description": "factory_to_warehouse, warehouse_to_factory, factory_to_factory, warehouse_to_warehouse"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-10-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-10-31"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "이동 경로 통계",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/warehouse-transfers/path-stats?startDate=2024-10-01&endDate=2024-10-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["warehouse-transfers", "path-stats"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-10-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-10-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -11,6 +11,8 @@ router.use("/factories", require("./factoryRoute"));
 router.use("/items", require("./itemRoute"));
 router.use("/boms", require("./bomRoute"));
 router.use("/inventories", require("./inventoryRoute"));
+router.use("/inventory-transactions", require("./inventoryTransactionRoute"));
+router.use("/warehouse-transfers", require("./warehouseTransferRoute"));
 router.use("/storage-conditions", require("./storageConditionRoute"));
 
 // router.use("/temperature", temperatureRoute);
