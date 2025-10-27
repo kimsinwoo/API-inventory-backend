@@ -1,119 +1,256 @@
 const db = require("../../models");
-const { Inventories, Items, sequelize } = db;
-const { Op } = require("sequelize");
+const { Inventories, Items, Factory, InventoryMovement, sequelize } = db;
+const { Op, fn, col } = require("sequelize");
 const dayjs = require("dayjs");
 
-// FIFO로 lot 차감
-async function fifoIssue({ itemId, factoryId, quantity, unit, t }) {
+/* ===============================
+ * 🔹 헬퍼 상수 (한글 변환용)
+ * =============================== */
+const KOR_CATEGORY = {
+  RawMaterial: "원재료",
+  SemiFinished: "반제품",
+  Finished: "완제품",
+  Supply: "소모품",
+};
+const KOR_STATUS = {
+  Normal: "정상",
+  LowStock: "부족",
+  Expiring: "유통기한임박",
+  Expired: "유통기한만료",
+};
+
+/* ===============================
+ * 🔹 유통기한 남은 일수 계산
+ * =============================== */
+function toDaysLeft(expirationDate) {
+  const today = dayjs().startOf("day");
+  const exp = dayjs(expirationDate);
+  return exp.diff(today, "day");
+}
+
+/* ===============================
+ * 🔹 FIFO 출고 로직
+ * =============================== */
+async function fifoIssue({ itemId, factoryId, quantity, t }) {
   let remain = Number(quantity);
-  if (remain <= 0) return 0;
+  if (remain <= 0) return { issued: 0, traces: [] };
 
   const lots = await Inventories.findAll({
     where: { item_id: itemId, factory_id: factoryId, quantity: { [Op.gt]: 0 } },
-    order: [["received_at", "ASC"], ["id","ASC"]],
+    order: [["received_at", "ASC"], ["id", "ASC"]],
     transaction: t,
     lock: t.LOCK.UPDATE,
   });
 
+  const traces = [];
   let issued = 0;
+
   for (const lot of lots) {
     if (remain <= 0) break;
     const take = Math.min(Number(lot.quantity), remain);
     if (take > 0) {
       await lot.update({ quantity: Number(lot.quantity) - take }, { transaction: t });
+      traces.push({ lotNumber: lot.lot_number, take });
       issued += take;
       remain -= take;
     }
   }
-  if (remain > 1e-9) {
-    throw new Error("재고가 부족합니다.");
-  }
-  return issued;
+
+  if (remain > 1e-9) throw new Error("재고가 부족합니다.");
+  return { issued, traces };
 }
 
+/* ===============================
+ * 🔹 재고 목록 조회 (필터 + 검색)
+ * =============================== */
 exports.list = async (filter = {}) => {
+  const { itemId, factoryId, status, category, search, page = 1, limit = 20 } = filter;
+
   const where = {};
-  if (filter.itemId) where.item_id = filter.itemId;
-  if (filter.factoryId) where.factory_id = filter.factoryId;
-  if (filter.status) where.status = filter.status;
+  if (itemId) where.item_id = itemId;
+  if (factoryId) where.factory_id = factoryId;
+  if (status) where.status = status;
 
-  return Inventories.findAll({ where, order: [["received_at","DESC"],["id","DESC"]] });
+  const include = [
+    { model: Items, attributes: ["id", "code", "name", "category", "shortage", "unit"] },
+    { model: Factory, attributes: ["id", "name"] },
+  ];
+
+  const itemWhere = {};
+  if (category) itemWhere.category = category;
+  if (search) {
+    include[0].where = {
+      ...(include[0].where ?? {}),
+      [Op.or]: [{ code: { [Op.substring]: search } }, { name: { [Op.substring]: search } }],
+    };
+  }
+  if (Object.keys(itemWhere).length > 0)
+    include[0].where = { ...(include[0].where ?? {}), ...itemWhere };
+
+  const { rows, count } = await Inventories.findAndCountAll({
+    where,
+    include,
+    order: [["received_at", "DESC"], ["id", "DESC"]],
+    offset: (page - 1) * limit,
+    limit,
+  });
+
+  const sums = await Inventories.findAll({
+    attributes: ["item_id", [fn("SUM", col("quantity")), "sumQty"]],
+    group: ["item_id"],
+  });
+  const sumMap = new Map(sums.map((s) => [Number(s.get("item_id")), Number(s.get("sumQty"))]));
+
+  const data = rows.map((inv) => {
+    const daysLeft = toDaysLeft(inv.expiration_date);
+    const item = inv.Item;
+    const totalQty = sumMap.get(item.id) ?? Number(inv.quantity);
+    const low = totalQty < Number(item.shortage ?? 0);
+    const normOrTime =
+      daysLeft < 0 ? "Expired" : daysLeft <= 3 ? "Expiring" : "Normal";
+    const finalStatus = low && normOrTime === "Normal" ? "LowStock" : normOrTime;
+
+    return {
+      id: inv.id,
+      lotNumber: inv.lot_number,
+      quantity: Number(inv.quantity),
+      unit: inv.unit,
+      expirationDate: inv.expiration_date,
+      daysLeft,
+      status: finalStatus,
+      statusLabel: KOR_STATUS[finalStatus],
+      item: {
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        category: item.category,
+        categoryLabel: KOR_CATEGORY[item.category],
+      },
+      factory: inv.Factory ? { id: inv.Factory.id, name: inv.Factory.name } : null,
+      receivedAt: inv.received_at,
+    };
+  });
+
+  return { items: data, meta: { page, limit, total: count } };
 };
 
-exports.receive = async (payload) => {
-  const {
-    itemId, factoryId, storageConditionId,
-    lotNumber, wholesalePrice, quantity, receivedAt, firstReceivedAt, expirationDate, unit,
-  } = payload;
+/* ===============================
+ * 🔹 재고 요약 통계 (대시보드)
+ * =============================== */
+exports.summary = async ({ factoryId } = {}) => {
+  const where = {};
+  if (factoryId) where.factory_id = factoryId;
 
-  return sequelize.transaction(async (t) => {
-    // lot 신규 생성
-    const inv = await Inventories.create({
-      item_id: itemId,
-      factory_id: factoryId,
-      storage_condition_id: storageConditionId,
-      lot_number: String(lotNumber).trim(),
-      wholesale_price: Number(wholesalePrice),
-      quantity: Number(quantity),
-      received_at: receivedAt,
-      first_received_at: firstReceivedAt || receivedAt,
-      expiration_date: dayjs(expirationDate).format("YYYY-MM-DD"),
-      status: "Normal",
-      unit: String(unit).trim(),
-    }, { transaction: t });
+  const [totalItemsRow] = await Inventories.findAll({
+    attributes: [[fn("COUNT", fn("DISTINCT", col("item_id"))), "cnt"]],
+    where,
+    raw: true,
+  });
 
-    // 입고 후 만료 임박/만료 상태 업데이트(간단 규칙)
-    const today = dayjs().startOf("day");
-    const exp = dayjs(inv.expiration_date);
-    let status = "Normal";
-    if (exp.isBefore(today)) status = "Expired";
-    else if (exp.diff(today,"day") <= 3) status = "Expiring";
-    await inv.update({ status }, { transaction: t });
+  const expiringSoon = await Inventories.count({
+    where: {
+      ...where,
+      expiration_date: { [Op.lte]: dayjs().add(3, "day").format("YYYY-MM-DD") },
+    },
+  });
 
-    return inv;
+  const expired = await Inventories.count({
+    where: {
+      ...where,
+      expiration_date: { [Op.lt]: dayjs().format("YYYY-MM-DD") },
+    },
+  });
+
+  const whCounts = await Inventories.findAll({
+    attributes: [[fn("COUNT", fn("DISTINCT", col("factory_id"))), "cnt"]],
+    where,
+    raw: true,
+  });
+
+  const lowStockRows = await Inventories.findAll({
+    attributes: ["item_id", [fn("SUM", col("quantity")), "sumQty"]],
+    where,
+    group: ["item_id"],
+    include: [{ model: Items, attributes: ["shortage"] }],
+  });
+  const lowStock = lowStockRows.filter(
+    (r) => Number(r.get("sumQty")) < Number(r.Item?.shortage ?? 0)
+  ).length;
+
+  return {
+    totalItems: Number(totalItemsRow?.cnt ?? 0),
+    lowStock,
+    expiringSoon,
+    expired,
+    warehouseCount: Number(whCounts?.[0]?.cnt ?? 0),
+  };
+};
+
+/* ===============================
+ * 🔹 창고별 이용률
+ * =============================== */
+exports.utilization = async () => {
+  const rows = await Inventories.findAll({
+    attributes: ["factory_id", [fn("COUNT", fn("DISTINCT", col("item_id"))), "itemCnt"]],
+    group: ["factory_id"],
+    include: [{ model: Factory, attributes: ["id", "name"] }],
+  });
+
+  const capacity = new Map();
+  rows.forEach((r) => capacity.set(r.factory_id, 10));
+
+  return rows.map((r) => {
+    const count = Number(r.get("itemCnt"));
+    const cap = capacity.get(r.factory_id) ?? 10;
+    const percentage = Math.min(100, Math.round((count / cap) * 100));
+    return {
+      factory: { id: r.factory_id, name: r.Factory?.name ?? "" },
+      percentage,
+      itemCount: count,
+      note: percentage >= 85 ? "창고 포화 주의" : "여유 공간 충분",
+    };
   });
 };
 
-exports.issue = async (payload) => {
-  const { itemId, factoryId, quantity, unit } = payload;
-  return sequelize.transaction(async (t) => {
-    const issued = await fifoIssue({ itemId, factoryId, quantity, unit, t });
-    return { issued };
+/* ===============================
+ * 🔹 재고 이동 이력
+ * =============================== */
+exports.movements = async ({ itemId, factoryId, from, to, page = 1, limit = 20 }) => {
+  const where = {};
+  if (itemId) where.item_id = itemId;
+  if (from) where.occurred_at = { [Op.gte]: new Date(from) };
+  if (to) where.occurred_at = { ...(where.occurred_at ?? {}), [Op.lte]: new Date(to) };
+  if (factoryId) {
+    where[Op.or] = [{ from_factory_id: factoryId }, { to_factory_id: factoryId }];
+  }
+
+  const { rows, count } = await InventoryMovement.findAndCountAll({
+    where,
+    include: [
+      { model: Items, attributes: ["code", "name"] },
+      { model: Factory, as: "fromFactory", attributes: ["id", "name"] },
+      { model: Factory, as: "toFactory", attributes: ["id", "name"] },
+    ],
+    order: [["occurred_at", "DESC"], ["id", "DESC"]],
+    offset: (page - 1) * limit,
+    limit,
   });
-};
 
-exports.transfer = async (payload) => {
-  const {
-    itemId, sourceFactoryId, destFactoryId, storageConditionId,
-    quantity, unit,
-  } = payload;
+  const korType = (t) =>
+    ({ RECEIVE: "입고", ISSUE: "소모", TRANSFER_OUT: "이동", TRANSFER_IN: "생산" }[t] ?? t);
 
-  return sequelize.transaction(async (t) => {
-    // 1) 출고(FIFO 차감)
-    const issued = await fifoIssue({ itemId, factoryId: sourceFactoryId, quantity, unit, t });
+  const data = rows.map((r) => ({
+    time: dayjs(r.occurred_at).format("YYYY-MM-DD HH:mm"),
+    type: korType(r.type),
+    category: r.Item?.name ?? "",
+    code: r.Item?.code ?? "",
+    lotNumber: r.lot_number,
+    quantity: `${Number(r.quantity)} ${r.unit}`,
+    fromLocation: r.fromFactory ? (r.fromFactory.id || r.fromFactory.name) : "",
+    toLocation: r.toFactory ? (r.toFactory.id || r.toFactory.name) : "",
+    manager: r.actor_name ?? "",
+    note: r.note ?? "",
+  }));
 
-    // 2) 입고(이동분: 동일 lotNumber를 복제하거나 신규 lot 부여)
-    const now = dayjs();
-    const lotNum = `TR-${itemId}-${now.valueOf()}`;
-
-    const inv = await Inventories.create({
-      item_id: itemId,
-      factory_id: destFactoryId,
-      storage_condition_id: storageConditionId,
-      lot_number: lotNum,
-      wholesale_price: 0, // 필요시 단가 정책 반영
-      quantity: issued,
-      received_at: now.toDate(),
-      first_received_at: now.toDate(),
-      expiration_date: now.add(365, "day").format("YYYY-MM-DD"), // 필요시 정책 반영/원로트 승계
-      status: "Normal",
-      unit: String(unit).trim(),
-    }, { transaction: t });
-
-    return { moved: issued, lotId: inv.id };
-  });
-};
-
-exports.remove = async (id) => {
-  return Inventories.destroy({ where: { id } });
+  return { items: data, meta: { page, limit, total: count } };
 };

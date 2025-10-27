@@ -1,53 +1,86 @@
-const { body, query, validationResult } = require("express-validator");
+const { z } = require("zod");
 
-// 공통 유틸
-const handle = (req,res,next) => {
-  const r = validationResult(req);
-  if (!r.isEmpty()) return res.status(400).json({ ok:false, message:"유효성 검사 실패", errors:r.array() });
-  next();
-};
+const enumStatus = z.enum(["Normal", "LowStock", "Expiring", "Expired"]).optional();
+const enumCategory = z.enum(["RawMaterial", "SemiFinished", "Finished", "Supply"]).optional();
 
-// GET /inventories
-exports.listRules = [
-  query("itemId").optional().isInt().toInt(),
-  query("factoryId").optional().isInt().toInt(),
-  query("status").optional().isIn(["Normal","LowStock","Expiring","Expired"]),
-  handle,
-];
+function validate(schemas) {
+  return (req, res, next) => {
+    try {
+      if (schemas.query) req.query = schemas.query.parse(req.query);
+      if (schemas.body) req.body = schemas.body.parse(req.body);
+      next();
+    } catch (e) {
+      res.status(400).json({ ok: false, message: "ValidationError", detail: e.errors ?? String(e) });
+    }
+  };
+}
 
-// POST /inventories/receive
-exports.receiveRules = [
-  body("itemId").isInt({min:1}).toInt(),
-  body("factoryId").isInt({min:1}).toInt(),
-  body("storageConditionId").isInt({min:1}).toInt(),
-  body("lotNumber").isString().trim().notEmpty(),
-  body("wholesalePrice").isFloat({ gt: 0 }),
-  body("quantity").isFloat({ gt: 0 }),
-  body("receivedAt").isISO8601().toDate(),
-  body("firstReceivedAt").optional().isISO8601().toDate(),
-  body("expirationDate").isISO8601().toDate(),
-  body("unit").isString().trim().notEmpty(),
-  handle,
-];
+exports.listRules = validate({
+  query: z.object({
+    itemId: z.coerce.number().positive().optional(),
+    factoryId: z.coerce.number().positive().optional(),
+    status: enumStatus,
+    category: enumCategory,
+    search: z.string().trim().min(1).max(50).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  }),
+});
 
-// POST /inventories/issue
-exports.issueRules = [
-  body("itemId").isInt({min:1}).toInt(),
-  body("factoryId").isInt({min:1}).toInt(),
-  body("quantity").isFloat({ gt: 0 }),
-  body("unit").isString().trim().notEmpty(),
-  handle,
-];
+exports.summaryRules = validate({
+  query: z.object({
+    factoryId: z.coerce.number().positive().optional(),
+  }),
+});
 
-// POST /inventories/transfer
-exports.transferRules = [
-  body("itemId").isInt({min:1}).toInt(),
-  body("sourceFactoryId").isInt({min:1}).toInt(),
-  body("destFactoryId").isInt({min:1}).toInt(),
-  body("storageConditionId").isInt({min:1}).toInt(),
-  body("quantity").isFloat({ gt: 0 }),
-  body("unit").isString().trim().notEmpty(),
-  handle,
-];
+exports.movementListRules = validate({
+  query: z.object({
+    itemId: z.coerce.number().positive().optional(),
+    factoryId: z.coerce.number().positive().optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  }),
+});
 
-exports.handleValidation = handle;
+exports.receiveRules = validate({
+  body: z.object({
+    itemId: z.coerce.number().positive(),
+    factoryId: z.coerce.number().positive(),
+    storageConditionId: z.coerce.number().positive(),
+    lotNumber: z.string().trim().min(1).max(50),
+    wholesalePrice: z.coerce.number().min(0),
+    quantity: z.coerce.number().positive(),
+    unit: z.string().trim().min(1).max(10),
+    receivedAt: z.coerce.date(),
+    firstReceivedAt: z.coerce.date().optional(),
+    expirationDate: z.coerce.date(),
+    note: z.string().trim().max(200).optional(),
+    actorName: z.string().trim().max(50).optional(),
+  }),
+});
+
+exports.issueRules = validate({
+  body: z.object({
+    itemId: z.coerce.number().positive(),
+    factoryId: z.coerce.number().positive(),
+    quantity: z.coerce.number().positive(),
+    unit: z.string().trim().min(1).max(10),
+    note: z.string().trim().max(200).optional(),
+    actorName: z.string().trim().max(50).optional(),
+  }),
+});
+
+exports.transferRules = validate({
+  body: z.object({
+    itemId: z.coerce.number().positive(),
+    sourceFactoryId: z.coerce.number().positive(),
+    destFactoryId: z.coerce.number().positive().refine((v, ctx) => v !== ctx.parent?.sourceFactoryId, { message: "destFactoryId must differ" }),
+    storageConditionId: z.coerce.number().positive(),
+    quantity: z.coerce.number().positive(),
+    unit: z.string().trim().min(1).max(10),
+    note: z.string().trim().max(200).optional(),
+    actorName: z.string().trim().max(50).optional(),
+  }),
+});

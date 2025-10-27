@@ -3,13 +3,30 @@ const svc = require("../services/inventoryService");
 module.exports = {
   index: async (req, res, next) => {
     try {
-      const { itemId, factoryId, status } = req.query || {};
-      const list = await svc.list({
-        itemId: itemId ? Number(itemId) : undefined,
-        factoryId: factoryId ? Number(factoryId) : undefined,
-        status,
-      });
-      res.json({ ok: true, data: list });
+      const list = await svc.list(req.query);
+      const summary = await svc.summary({ factoryId: req.query.factoryId });
+      res.json({ ok: true, data: list.items, meta: { ...list.meta, summary } });
+    } catch (e) { next(e); }
+  },
+
+  summary: async (req, res, next) => {
+    try {
+      const out = await svc.summary({ factoryId: req.query.factoryId });
+      res.json({ ok: true, data: out });
+    } catch (e) { next(e); }
+  },
+
+  utilization: async (_req, res, next) => {
+    try {
+      const out = await svc.utilization();
+      res.json({ ok: true, data: out });
+    } catch (e) { next(e); }
+  },
+
+  movements: async (req, res, next) => {
+    try {
+      const out = await svc.movements(req.query);
+      res.json({ ok: true, data: out.items, meta: out.meta });
     } catch (e) { next(e); }
   },
 

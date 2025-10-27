@@ -19,7 +19,8 @@ $models = @(
     "storagecondition",
     "temperature",
     "user",
-    "userprofile"
+    "userprofile",
+    "inventorymovement"
 )
 
 foreach ($model in $models) {
