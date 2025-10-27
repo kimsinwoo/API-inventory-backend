@@ -19,9 +19,9 @@ async function seedData() {
     if (factories.length === 0) {
       console.log("Factory 데이터 추가 중...");
       await Factory.bulkCreate([
-        { id: 1, name: "서울 공장", location: "서울특별시 강남구", capacity: 1000 },
-        { id: 2, name: "부산 공장", location: "부산광역시 해운대구", capacity: 1500 },
-        { id: 3, name: "대전 공장", location: "대전광역시 유성구", capacity: 800 },
+        { id: 1, name: "서울 공장", type: "1PreProcessing", address: "서울특별시 강남구" },
+        { id: 2, name: "부산 공장", type: "2Manufacturing", address: "부산광역시 해운대구" },
+        { id: 3, name: "대전 공장", type: "2Manufacturing", address: "대전광역시 유성구" },
       ]);
       console.log("✅ Factory 데이터 추가 완료");
     }

@@ -55,7 +55,7 @@ exports.receiveRules = validate({
     unit: z.string().trim().min(1).max(10),
     receivedAt: z.coerce.date(),
     firstReceivedAt: z.coerce.date().optional(),
-    expirationDate: z.coerce.date(),
+    // expirationDate는 item.expiration_date를 통해 자동 계산됨
     note: z.string().trim().max(200).optional(),
     actorName: z.string().trim().max(50).optional(),
   }),

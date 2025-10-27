@@ -26,11 +26,12 @@ module.exports = (sequelize) => {
         defaultValue: "kg",
       },
       factory_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
-      storageTemp: { type: DataTypes.STRING(10), allowNull: true },
+      storage_temp: { type: DataTypes.STRING(10), allowNull: true },
       bom_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
       shortage: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 5 },
       expiration_date: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-      wholesale_price: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true, defaultValue: 0 }, // ✅ NEW (원)
+      wholesale_price: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true, defaultValue: 0 },
+      storage_condition_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     },
     { sequelize, modelName: "Items", tableName: "Items", timestamps: true, underscored: true }
   );

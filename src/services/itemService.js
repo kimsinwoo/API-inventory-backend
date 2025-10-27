@@ -15,7 +15,7 @@ exports.listItems = async () => {
     include: [
       { 
         model: Factory,
-        attributes: ['id', 'name', 'location', 'capacity']
+        attributes: ['id', 'name', 'type', 'address']
       },
     ],
     order: [['id', 'DESC']], // 최신 등록순
@@ -32,7 +32,7 @@ exports.getItem = async (id) => {
     include: [
       { 
         model: Factory,
-        attributes: ['id', 'name', 'location', 'capacity']
+        attributes: ['id', 'name', 'type', 'address']
       },
     ],
   });
@@ -49,7 +49,7 @@ exports.getItemByCode = async (code) => {
     include: [
       { 
         model: Factory,
-        attributes: ['id', 'name', 'location', 'capacity']
+        attributes: ['id', 'name', 'type', 'address']
       },
     ],
   });
@@ -101,10 +101,20 @@ exports.createItem = async (payload) => {
   }
 
   // 품목 생성
-  const createdItem = await Items.create(itemData);
-  
-  // 생성된 품목을 공장 정보와 함께 반환
-  return this.getItem(createdItem.id);
+  try {
+    const createdItem = await Items.create(itemData);
+    
+    // 생성된 품목을 공장 정보와 함께 반환
+    return this.getItem(createdItem.id);
+  } catch (error) {
+    // 중복 코드 에러 처리
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      const duplicateError = new Error(`품목 코드 '${code}'는 이미 사용 중입니다. 다른 코드를 사용해주세요.`);
+      duplicateError.status = 409; // Conflict
+      throw duplicateError;
+    }
+    throw error;
+  }
 };
 
 /**

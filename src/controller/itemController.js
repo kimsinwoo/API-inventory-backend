@@ -42,6 +42,15 @@ exports.create = async (req, res, next) => {
   } catch (error) { 
     console.error('=== 품목 생성 오류 ===');
     console.error(error);
+    
+    // 중복 코드 에러인 경우 명확한 메시지 반환
+    if (error.status === 409) {
+      return res.status(409).json({
+        ok: false,
+        message: error.message,
+      });
+    }
+    
     next(error); 
   }
 };

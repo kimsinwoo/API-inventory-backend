@@ -213,6 +213,167 @@ exports.utilization = async () => {
 };
 
 /* ===============================
+ * 🔹 재고 입고
+ * =============================== */
+exports.receive = async (payload) => {
+  const {
+    itemId, factoryId, storageConditionId,
+    lotNumber, wholesalePrice, quantity, receivedAt, firstReceivedAt, unit, note, actorName,
+  } = payload;
+
+  // ✅ 외래 키 검증
+  const item = await Items.findByPk(itemId);
+  if (!item) {
+    throw new Error(`Item with id ${itemId} does not exist`);
+  }
+
+  const factory = await Factory.findByPk(factoryId);
+  if (!factory) {
+    throw new Error(`Factory with id ${factoryId} does not exist`);
+  }
+
+  const storageCondition = await db.StorageCondition.findByPk(storageConditionId);
+  if (!storageCondition) {
+    throw new Error(`StorageCondition with id ${storageConditionId} does not exist`);
+  }
+
+  // ✅ 유통기한 자동 계산: 입고날짜 + item의 expiration_date(일수)
+  const calculatedExpirationDate = dayjs(receivedAt).add(item.expiration_date, 'day').format("YYYY-MM-DD");
+
+  return sequelize.transaction(async (t) => {
+    const inv = await Inventories.create({
+      item_id: itemId,
+      factory_id: factoryId,
+      storage_condition_id: storageConditionId,
+      lot_number: String(lotNumber).trim(),
+      wholesale_price: Number(wholesalePrice),
+      quantity: Number(quantity),
+      received_at: receivedAt,
+      first_received_at: firstReceivedAt ?? receivedAt,
+      expiration_date: calculatedExpirationDate,
+      status: "Normal",
+      unit: String(unit).trim(),
+    }, { transaction: t });
+
+    const today = dayjs().startOf("day");
+    const exp = dayjs(inv.expiration_date);
+    let status = "Normal";
+    if (exp.isBefore(today)) status = "Expired";
+    else if (exp.diff(today, "day") <= 3) status = "Expiring";
+    await inv.update({ status }, { transaction: t });
+
+    await InventoryMovement.create({
+      type: "RECEIVE",
+      item_id: itemId,
+      lot_number: inv.lot_number,
+      quantity: Number(quantity),
+      unit,
+      from_factory_id: null,
+      to_factory_id: factoryId,
+      note: note ?? null,
+      actor_name: actorName ?? null,
+      occurred_at: new Date(receivedAt),
+    }, { transaction: t });
+
+    return inv;
+  });
+};
+
+/* ===============================
+ * 🔹 재고 출고 (FIFO)
+ * =============================== */
+exports.issue = async (payload) => {
+  const { itemId, factoryId, quantity, unit, note, actorName } = payload;
+  return sequelize.transaction(async (t) => {
+    const { issued, traces } = await fifoIssue({ itemId, factoryId, quantity, t });
+
+    // trace별 이력
+    for (const tr of traces) {
+      await InventoryMovement.create({
+        type: "ISSUE",
+        item_id: itemId,
+        lot_number: tr.lotNumber,
+        quantity: tr.take,
+        unit,
+        from_factory_id: factoryId,
+        to_factory_id: null,
+        note: note ?? null,
+        actor_name: actorName ?? null,
+      }, { transaction: t });
+    }
+
+    return { issued };
+  });
+};
+
+/* ===============================
+ * 🔹 재고 이동 (공장 간 이동)
+ * =============================== */
+exports.transfer = async (payload) => {
+  const {
+    itemId, sourceFactoryId, destFactoryId, storageConditionId,
+    quantity, unit, note, actorName,
+  } = payload;
+
+  return sequelize.transaction(async (t) => {
+    const { issued, traces } = await fifoIssue({ itemId, factoryId: sourceFactoryId, quantity, t });
+
+    const now = dayjs();
+    // OUT 이력
+    for (const tr of traces) {
+      await InventoryMovement.create({
+        type: "TRANSFER_OUT",
+        item_id: itemId,
+        lot_number: tr.lotNumber,
+        quantity: tr.take,
+        unit,
+        from_factory_id: sourceFactoryId,
+        to_factory_id: destFactoryId,
+        note: note ?? null,
+        actor_name: actorName ?? null,
+      }, { transaction: t });
+    }
+
+    const lotNum = `TR-${itemId}-${now.valueOf()}`;
+    const inv = await Inventories.create({
+      item_id: itemId,
+      factory_id: destFactoryId,
+      storage_condition_id: storageConditionId,
+      lot_number: lotNum,
+      wholesale_price: 0,
+      quantity: issued,
+      received_at: now.toDate(),
+      first_received_at: now.toDate(),
+      expiration_date: now.add(365, "day").format("YYYY-MM-DD"),
+      status: "Normal",
+      unit: String(unit).trim(),
+    }, { transaction: t });
+
+    // IN 이력
+    await InventoryMovement.create({
+      type: "TRANSFER_IN",
+      item_id: itemId,
+      lot_number: inv.lot_number,
+      quantity: issued,
+      unit,
+      from_factory_id: sourceFactoryId,
+      to_factory_id: destFactoryId,
+      note: note ?? null,
+      actor_name: actorName ?? null,
+    }, { transaction: t });
+
+    return { moved: issued, lotId: inv.id };
+  });
+};
+
+/* ===============================
+ * 🔹 재고 삭제
+ * =============================== */
+exports.remove = async (id) => {
+  return Inventories.destroy({ where: { id } });
+};
+
+/* ===============================
  * 🔹 재고 이동 이력
  * =============================== */
 exports.movements = async ({ itemId, factoryId, from, to, page = 1, limit = 20 }) => {
