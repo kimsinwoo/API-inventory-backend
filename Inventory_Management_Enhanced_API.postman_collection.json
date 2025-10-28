@@ -1,0 +1,1020 @@
+{
+  "info": {
+    "name": "재고 관리 시스템 API (Enhanced v2.0)",
+    "description": "실제 공장에서 사용 가능한 재고 관리 시스템 API 컬렉션",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. 대시보드 API",
+      "item": [
+        {
+          "name": "메인 대시보드",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1",
+                  "description": "공장 ID (선택사항)"
+                }
+              ]
+            },
+            "description": "전체 대시보드 데이터 조회"
+          }
+        },
+        {
+          "name": "총 재고 가치",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/total-value?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "total-value"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "카테고리별 재고 분포",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/category-breakdown?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "category-breakdown"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "최근 재고 이동",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/recent-movements?limit=10&factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "recent-movements"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "가장 많이 움직인 품목",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/top-moving-items?days=7&limit=5&factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "top-moving-items"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "재고 상태 요약",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/stock-status?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "stock-status"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "월별 트렌드",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/monthly-trend?months=6&factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "monthly-trend"],
+              "query": [
+                {
+                  "key": "months",
+                  "value": "6"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공장별 비교",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/factory-comparison",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "factory-comparison"]
+            }
+          }
+        },
+        {
+          "name": "KPI 지표",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/kpis?period=month&factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "kpis"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "month",
+                  "description": "day, week, month"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 알림 API",
+      "item": [
+        {
+          "name": "전체 알림 요약",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/summary?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "summary"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "재고 부족, 유통기한 임박, 만료 등 모든 알림 요약"
+          }
+        },
+        {
+          "name": "재고 부족 알림",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/low-stock?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "low-stock"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "유통기한 임박 알림",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/expiring?days=3&factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "expiring"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "3",
+                  "description": "며칠 이내 만료 (기본값: 3)"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "만료된 재고",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/expired?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "expired"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "공장별 알림",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/factory-alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "factory-alerts"]
+            }
+          }
+        },
+        {
+          "name": "일일 알림 리포트",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/daily-report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "daily-report"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 리포트 API",
+      "item": [
+        {
+          "name": "일일 리포트",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/daily?date=2024-10-28&factoryId=1&export=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "daily"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2024-10-28",
+                  "description": "리포트 날짜 (기본값: 오늘)"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                },
+                {
+                  "key": "export",
+                  "value": "false",
+                  "description": "true로 설정 시 Excel 파일 생성"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "일일 리포트 (Excel 생성)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/daily?export=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "daily"],
+              "query": [
+                {
+                  "key": "export",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "주간 리포트",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/weekly?weekStart=2024-10-21&factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "weekly"],
+              "query": [
+                {
+                  "key": "weekStart",
+                  "value": "2024-10-21",
+                  "description": "주 시작일 (기본값: 이번 주)"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "월간 리포트",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/monthly?year=2024&month=10&factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "monthly"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2024"
+                },
+                {
+                  "key": "month",
+                  "value": "10"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "재고 현황 리포트",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/inventory-status?factoryId=1&export=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "inventory-status"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                },
+                {
+                  "key": "export",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "재고 회전율 분석",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/turnover-analysis?factoryId=1&days=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "turnover-analysis"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                },
+                {
+                  "key": "days",
+                  "value": "30",
+                  "description": "분석 기간 (기본값: 30일)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "생성된 리포트 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/list",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "list"]
+            }
+          }
+        },
+        {
+          "name": "리포트 다운로드",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/download/daily_report_20241028.xlsx",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "download", "daily_report_20241028.xlsx"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 재고 예측 API",
+      "item": [
+        {
+          "name": "전체 품목 재고 소진 예측",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions/stockouts?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions", "stockouts"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "30일 이내 재고 소진이 예상되는 품목 목록"
+          }
+        },
+        {
+          "name": "소비 패턴 분석",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions/1/consumption-pattern?days=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions", "1", "consumption-pattern"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "description": "분석 기간 (기본값: 30일)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "품목별 재고 소진 예측",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions/1/stockout?factoryId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions", "1", "stockout"],
+              "query": [
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "재주문 수량 계산",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions/1/reorder-quantity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions", "1", "reorder-quantity"]
+            },
+            "description": "최적 재주문 수량 및 재주문 시점 계산"
+          }
+        },
+        {
+          "name": "계절성 분석",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions/1/seasonality?months=12",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions", "1", "seasonality"],
+              "query": [
+                {
+                  "key": "months",
+                  "value": "12",
+                  "description": "분석 기간 (기본값: 12개월)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "수요 예측",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/predictions/1/forecast?days=7",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "predictions", "1", "forecast"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7",
+                  "description": "예측 기간 (기본값: 7일)"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 헬스체크 API",
+      "item": [
+        {
+          "name": "전체 헬스체크",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "데이터베이스, 시스템 상태 확인"
+          }
+        },
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health/ping",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health", "ping"]
+            }
+          }
+        },
+        {
+          "name": "Readiness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health/readiness",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health", "readiness"]
+            },
+            "description": "Kubernetes readiness probe"
+          }
+        },
+        {
+          "name": "Liveness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health/liveness",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health", "liveness"]
+            },
+            "description": "Kubernetes liveness probe"
+          }
+        },
+        {
+          "name": "시스템 메트릭스",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health", "metrics"]
+            },
+            "description": "데이터베이스 통계, 메모리, CPU 사용률 등"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. 재고 관리",
+      "item": [
+        {
+          "name": "재고 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventories?page=1&limit=20&factoryId=1&category=RawMaterial",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventories"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "1"
+                },
+                {
+                  "key": "category",
+                  "value": "RawMaterial",
+                  "description": "RawMaterial, SemiFinished, Finished, Supply"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "재고 입고",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"storageConditionId\": 1,\n  \"lotNumber\": \"LOT-2024-001\",\n  \"quantity\": 100,\n  \"wholesalePrice\": 15000,\n  \"receivedAt\": \"2024-10-28\",\n  \"unit\": \"kg\",\n  \"note\": \"신규 입고\",\n  \"actorName\": \"홍길동\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventories/receive",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventories", "receive"]
+            }
+          }
+        },
+        {
+          "name": "재고 출고",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": 1,\n  \"factoryId\": 1,\n  \"quantity\": 50,\n  \"unit\": \"kg\",\n  \"note\": \"생산 사용\",\n  \"actorName\": \"김철수\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventories/issue",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventories", "issue"]
+            }
+          }
+        },
+        {
+          "name": "재고 이동",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": 1,\n  \"sourceFactoryId\": 1,\n  \"destFactoryId\": 2,\n  \"storageConditionId\": 1,\n  \"quantity\": 30,\n  \"unit\": \"kg\",\n  \"note\": \"공장 간 이동\",\n  \"actorName\": \"이영희\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventories/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventories", "transfer"]
+            }
+          }
+        },
+        {
+          "name": "재고 이동 이력",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventories/movements?page=1&limit=20&itemId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventories", "movements"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "itemId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. 품목 관리",
+      "item": [
+        {
+          "name": "품목 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "items"]
+            }
+          }
+        },
+        {
+          "name": "품목 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"RM006\",\n  \"name\": \"테스트 원재료\",\n  \"category\": \"RawMaterial\",\n  \"unit\": \"kg\",\n  \"factoryId\": 1,\n  \"storageTemp\": \"냉동\",\n  \"shortage\": 10,\n  \"expirationDate\": 30,\n  \"wholesalePrice\": 20000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "items"]
+            }
+          }
+        },
+        {
+          "name": "품목 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/items/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "items", "1"]
+            }
+          }
+        },
+        {
+          "name": "품목 수정",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"수정된 품목명\",\n  \"shortage\": 15,\n  \"wholesalePrice\": 18000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/items/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "items", "1"]
+            }
+          }
+        },
+        {
+          "name": "품목 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/items/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "items", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. 공장 관리",
+      "item": [
+        {
+          "name": "공장 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/factories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "factories"]
+            }
+          }
+        },
+        {
+          "name": "공장 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"광주 공장\",\n  \"type\": \"2Manufacturing\",\n  \"address\": \"광주광역시 북구\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/factories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "factories"]
+            }
+          }
+        },
+        {
+          "name": "공장 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/factories/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "factories", "1"]
+            }
+          }
+        },
+        {
+          "name": "공장 수정",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"서울 본사 공장\",\n  \"address\": \"서울특별시 강남구 테헤란로 123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/factories/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "factories", "1"]
+            }
+          }
+        },
+        {
+          "name": "공장 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/factories/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "factories", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. 인증",
+      "item": [
+        {
+          "name": "회원가입",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"홍길동\",\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "로그인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "로그아웃",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "현재 사용자 정보",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    }
+  ]
+}
+

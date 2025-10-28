@@ -8,7 +8,13 @@
     "db:init": "npx sequelize-cli init",
     "db:make-models": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-models.ps1",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon src/app.js"
+    "start": "nodemon src/app.js",
+    "seed": "node seed-data.js",
+    "seed:anyikong": "node seed-anyikong-data.js",
+    "backup": "node scripts/backup-database.js",
+    "restore": "node scripts/restore-database.js",
+    "reset": "node scripts/reset-database.js",
+    "reset:force": "node scripts/reset-database.js --force"
   },
   "author": "",
   "license": "ISC",

@@ -11,6 +11,7 @@ const session = require("express-session");
 
 const db = require("../models");
 const indexRoute = require("./routes/indexRoute");
+const activityLogger = require("./middleware/activityLogger");
 
 // 환경 변수 로드
 dotenv.config();
@@ -47,23 +48,21 @@ app.use(
 app.use(express.json());  // JSON 형식의 요청 본문 파싱
 app.use(express.urlencoded({ extended: true }));  // URL 인코딩된 데이터 파싱
 
+// 활동 로그 미들웨어 (헬스체크 제외)
+app.use(activityLogger.skipLogging(["/api/health/ping", "/api/health/liveness"]));
+app.use(activityLogger.addRequestId);
+
 // API 라우트 등록
 app.use("/api", indexRoute);
 
 // 전역 에러 핸들러
+app.use(activityLogger.logError);
 app.use((error, req, res, next) => {
-  console.error('========== 에러 발생 ==========');
-  console.error('에러 메시지:', error.message);
-  console.error('에러 스택:', error.stack);
-  console.error('요청 경로:', req.path);
-  console.error('요청 메서드:', req.method);
-  console.error('요청 본문:', req.body);
-  console.error('================================');
-  
   res.status(error.status || 500).json({
     ok: false,
     message: error.message || '서버 내부 오류가 발생했습니다',
-    error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    requestId: req.requestId
   });
 });
 
