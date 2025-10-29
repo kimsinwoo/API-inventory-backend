@@ -17,12 +17,13 @@ router.use("/warehouse-transfers", require("./warehouseTransferRoute"));
 router.use("/storage-conditions", require("./storageConditionRoute"));
 router.use("/order-import", require("./orderImportRoute"));
 
-// 새로운 라우트 - 대시보드, 알림, 리포트
+// 배송 관리
+router.use("/shipping", require("./shippingRoute"));
+
 router.use("/dashboard", require("./dashboardRoute"));
 router.use("/notifications", require("./notificationRoute"));
 router.use("/reports", require("./reportRoute"));
 
-// 헬스체크 및 예측
 router.use("/health", require("./healthCheckRoute"));
 router.use("/predictions", require("./predictionRoute"));
 

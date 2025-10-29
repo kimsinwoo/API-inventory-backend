@@ -540,12 +540,143 @@ async function processMultipleFiles(files, outputDir) {
   };
 }
 
+/**
+ * CJ대한통운 업로드 양식으로 변환
+ */
+function convertToCJFormat(orders) {
+  return orders.map((order, index) => ({
+    '사용안함': '',
+    '사용안함2': '',
+    '고객주문번호': order.주문번호 || `ORDER_${index + 1}`,
+    '운송장번호': order.송장번호 || '',
+    '사용안함3': '',
+    '사용안함4': '',
+    '운임구분': '선불',  // 기본값: 선불
+    '사용안함5': '',
+    '사용안함6': '',
+    '품목명': order.상품명 || '상품',
+    '사용안함7': '',
+    '사용안함8': '',
+    '사용안함9': '',
+    '받는분성명': order.수취인 || order.구매자명 || '',
+    '받는분전화번호': order.연락처 || '',
+    '받는분우편번호': '',  // 우편번호는 별도로 추출 필요
+    '받는분주소(전체, 분할)': order.주소 || '',
+    '배송메세지1': `${order.옵션 ? `[옵션: ${order.옵션}] ` : ''}수량: ${order.수량}개`
+  }));
+}
+
+/**
+ * CJ대한통운 양식 엑셀 파일 생성
+ */
+function saveToCJExcel(data, outputPath) {
+  // CJ대한통운 형식으로 데이터 준비
+  const exportData = convertToCJFormat(data);
+
+  // 워크북 생성
+  const newWorkbook = xlsx.utils.book_new();
+  const worksheet = xlsx.utils.json_to_sheet(exportData);
+
+  // 컬럼 너비 설정
+  worksheet['!cols'] = [
+    { wch: 10 }, // 사용안함
+    { wch: 10 }, // 사용안함2
+    { wch: 18 }, // 고객주문번호
+    { wch: 15 }, // 운송장번호
+    { wch: 10 }, // 사용안함3
+    { wch: 10 }, // 사용안함4
+    { wch: 10 }, // 운임구분
+    { wch: 10 }, // 사용안함5
+    { wch: 10 }, // 사용안함6
+    { wch: 30 }, // 품목명
+    { wch: 10 }, // 사용안함7
+    { wch: 10 }, // 사용안함8
+    { wch: 10 }, // 사용안함9
+    { wch: 12 }, // 받는분성명
+    { wch: 15 }, // 받는분전화번호
+    { wch: 12 }, // 받는분우편번호
+    { wch: 40 }, // 받는분주소
+    { wch: 30 }  // 배송메세지1
+  ];
+
+  xlsx.utils.book_append_sheet(newWorkbook, worksheet, 'Sheet1');
+  xlsx.writeFile(newWorkbook, outputPath);
+  
+  return outputPath;
+}
+
+/**
+ * 다중 파일 처리 및 CJ대한통운 형식으로 통합
+ */
+async function processAndConvertToCJ(files, outputDir) {
+  const allOrderData = [];
+  const fileResults = [];
+
+  // 각 파일 처리
+  for (const file of files) {
+    try {
+      const result = await processSingleFile(file.path);
+      
+      allOrderData.push(...result.data);
+      fileResults.push({
+        fileName: file.originalname,
+        format: result.format,
+        recordCount: result.recordCount,
+        success: true
+      });
+    } catch (error) {
+      fileResults.push({
+        fileName: file.originalname,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  // 통합 데이터 처리
+  const mergedData = mergeOrderData(allOrderData);
+  
+  // 출력 디렉토리가 없으면 생성
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  
+  // 1. 표준 형식 엑셀 파일 생성
+  const standardFileName = `통합주문내역_${Date.now()}.xlsx`;
+  const standardPath = path.join(outputDir, standardFileName);
+  saveToExcel(mergedData, standardPath);
+
+  // 2. CJ대한통운 형식 엑셀 파일 생성
+  const cjFileName = `CJ대한통운_업로드_${Date.now()}.xlsx`;
+  const cjPath = path.join(outputDir, cjFileName);
+  saveToCJExcel(mergedData, cjPath);
+
+  return {
+    fileResults,
+    totalRecords: mergedData.length,
+    standardFile: {
+      fileName: standardFileName,
+      path: standardPath,
+      downloadUrl: `/api/order-import/download/${standardFileName}`
+    },
+    cjFile: {
+      fileName: cjFileName,
+      path: cjPath,
+      downloadUrl: `/api/order-import/download/${cjFileName}`
+    }
+  };
+}
+
 module.exports = {
   detectExcelFormat,
   extractOrderData,
   mergeOrderData,
   saveToExcel,
+  convertToCJFormat,
+  saveToCJExcel,
   processSingleFile,
-  processMultipleFiles
+  processMultipleFiles,
+  processAndConvertToCJ
 };
+
 

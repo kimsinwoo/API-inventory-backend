@@ -36,6 +36,18 @@ router.post(
 );
 
 /**
+ * @route   POST /api/order-import/upload-cj
+ * @desc    다중 파일 업로드 및 CJ대한통운 형식으로 통합
+ * @access  Private
+ */
+router.post(
+  '/upload-cj',
+  uploadMultiple,
+  handleUploadError,
+  asyncHandler(orderImportController.uploadAndConvertToCJ)
+);
+
+/**
  * @route   GET /api/order-import/download/:filename
  * @desc    통합 파일 다운로드
  * @access  Private
@@ -66,4 +78,5 @@ router.delete(
 );
 
 module.exports = router;
+
 

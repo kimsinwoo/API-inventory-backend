@@ -183,11 +183,55 @@ const deleteFile = async (req, res, next) => {
   }
 };
 
+/**
+ * 다중 파일 업로드 및 CJ대한통운 형식으로 통합
+ * POST /api/order-import/upload-cj
+ */
+const uploadAndConvertToCJ = async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        ok: false,
+        message: '파일이 업로드되지 않았습니다.'
+      });
+    }
+
+    const result = await orderImportService.processAndConvertToCJ(req.files, outputDir);
+
+    res.json({
+      ok: true,
+      message: `${req.files.length}개의 파일이 성공적으로 처리되었습니다.`,
+      data: {
+        fileResults: result.fileResults,
+        totalRecords: result.totalRecords,
+        files: {
+          standard: {
+            fileName: result.standardFile.fileName,
+            downloadUrl: result.standardFile.downloadUrl,
+            description: '표준 통합 주문내역 (전체 정보 포함)'
+          },
+          cj: {
+            fileName: result.cjFile.fileName,
+            downloadUrl: result.cjFile.downloadUrl,
+            description: 'CJ대한통운 업로드용 파일 (배송 정보만)'
+          }
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('CJ대한통운 형식 변환 오류:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   uploadSingleFile,
   uploadMultipleFiles,
+  uploadAndConvertToCJ,
   downloadFile,
   getUploadedFiles,
   deleteFile
 };
+
 

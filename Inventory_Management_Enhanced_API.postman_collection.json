@@ -938,7 +938,77 @@
       ]
     },
     {
-      "name": "9. 인증",
+      "name": "9. 주문서 처리 (재고 자동 차감)",
+      "item": [
+        {
+          "name": "Excel 템플릿 다운로드",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/order-process/template",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-process", "template"]
+            },
+            "description": "주문서 작성을 위한 Excel 템플릿 다운로드"
+          }
+        },
+        {
+          "name": "주문서 Excel 업로드 (재고 자동 차감)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "⚠️ 필드명은 반드시 'file'이어야 합니다. Excel/CSV 파일 선택 (.xlsx, .xls, .csv)"
+                },
+                {
+                  "key": "factoryId",
+                  "value": "3",
+                  "type": "text",
+                  "description": "공장 ID (기본값: 3 - 포장센터)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/order-process/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-process", "upload"]
+            },
+            "description": "📦 쇼핑몰 주문서 Excel 파일을 업로드하여 자동으로 재고 차감 (FIFO 방식)\n\n지원 형식:\n- 쿠팡/옥션\n- G마켓\n- 네이버 쇼핑\n- 11번가\n- 기타 (자동 감지)\n\n주의사항:\n- 필드명은 반드시 'file'을 사용\n- 파일 크기 제한: 10MB\n- 필수 컬럼: 품목코드 또는 품목명, 수량"
+          }
+        },
+        {
+          "name": "JSON 데이터로 주문 처리",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"factoryId\": 3,\n  \"orders\": [\n    {\n      \"itemCode\": \"FN-001\",\n      \"itemName\": \"애니콩 프리미엄 두부 (300g)\",\n      \"quantity\": 100,\n      \"orderNum\": \"ORD-20241028-001\",\n      \"recipient\": \"홍길동\",\n      \"address\": \"서울특별시 강남구\"\n    },\n    {\n      \"itemCode\": \"FN-003\",\n      \"itemName\": \"애니콩 검은콩 두유 (1L)\",\n      \"quantity\": 50,\n      \"orderNum\": \"ORD-20241028-002\",\n      \"recipient\": \"김철수\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/order-process/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-process", "process"]
+            },
+            "description": "JSON 형식으로 주문 데이터를 전송하여 재고 자동 차감"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. 인증",
       "item": [
         {
           "name": "회원가입",
