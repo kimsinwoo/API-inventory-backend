@@ -4,6 +4,7 @@
  */
 const db = require("./models");
 const bcrypt = require("bcryptjs");
+const { generateBarcode } = require("./src/utils/barcodeGenerator");
 
 async function seedData() {
   try {
@@ -58,7 +59,7 @@ async function seedData() {
     ]);
 
     const hashedPassword = await bcrypt.hash("password123", 10);
-    await db.User.bulkCreate([
+    const users = await db.User.bulkCreate([
       {
         id: "ceo@dogsnack.com",
         password: hashedPassword,
@@ -475,13 +476,14 @@ async function seedData() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(today.getDate() - 30);
 
+    // 바코드는 각 재고마다 유니크하게 생성됩니다 (타임스탬프 기반)
     await db.Inventories.bulkCreate([
       // 원재료 재고
       {
         item_id: rawMaterials[0].id,
         factory_id: factories[0].id,
         storage_condition_id: storageConditions[1].id,
-        lot_number: "LOT-20241029-001",
+        barcode: generateBarcode(),
         wholesale_price: 8000,
         quantity: 120,
         unit: "kg",
@@ -494,7 +496,7 @@ async function seedData() {
         item_id: rawMaterials[1].id,
         factory_id: factories[0].id,
         storage_condition_id: storageConditions[0].id,
-        lot_number: "LOT-20241029-002",
+        barcode: generateBarcode(),
         wholesale_price: 15000,
         quantity: 85,
         unit: "kg",
@@ -509,7 +511,7 @@ async function seedData() {
         item_id: rawMaterials[2].id,
         factory_id: factories[0].id,
         storage_condition_id: storageConditions[0].id,
-        lot_number: "LOT-20241029-003",
+        barcode: generateBarcode(),
         wholesale_price: 5000,
         quantity: 65,
         unit: "kg",
@@ -525,7 +527,7 @@ async function seedData() {
         item_id: semiFinished[0].id,
         factory_id: factories[1].id,
         storage_condition_id: storageConditions[3].id,
-        lot_number: "LOT-20241029-101",
+        barcode: generateBarcode(),
         wholesale_price: 25000,
         quantity: 45,
         unit: "kg",
@@ -539,7 +541,7 @@ async function seedData() {
         item_id: finishedProducts[0].id,
         factory_id: factories[2].id,
         storage_condition_id: storageConditions[2].id,
-        lot_number: "LOT-20241029-201",
+        barcode: generateBarcode(),
         wholesale_price: 8000,
         quantity: 580,
         unit: "EA",
@@ -554,7 +556,7 @@ async function seedData() {
         item_id: finishedProducts[1].id,
         factory_id: factories[2].id,
         storage_condition_id: storageConditions[2].id,
-        lot_number: "LOT-20241029-202",
+        barcode: generateBarcode(),
         wholesale_price: 12000,
         quantity: 420,
         unit: "EA",
@@ -569,7 +571,7 @@ async function seedData() {
         item_id: finishedProducts[2].id,
         factory_id: factories[2].id,
         storage_condition_id: storageConditions[2].id,
-        lot_number: "LOT-20241029-203",
+        barcode: generateBarcode(),
         wholesale_price: 6000,
         quantity: 35,
         unit: "EA",
@@ -585,7 +587,7 @@ async function seedData() {
         item_id: supplies[0].id,
         factory_id: factories[1].id,
         storage_condition_id: storageConditions[2].id,
-        lot_number: "LOT-20241029-301",
+        barcode: generateBarcode(),
         wholesale_price: 100,
         quantity: 5500,
         unit: "EA",
@@ -605,11 +607,19 @@ async function seedData() {
      * =============================== */
     console.log("🔄 재고 이동 이력 생성 중...");
 
+    // 생성된 재고의 바코드 조회
+    const inv1 = await db.Inventories.findOne({
+      where: { item_id: rawMaterials[0].id },
+    });
+    const inv2 = await db.Inventories.findOne({
+      where: { item_id: semiFinished[0].id },
+    });
+
     await db.InventoryMovement.bulkCreate([
       {
         type: "RECEIVE",
         item_id: rawMaterials[0].id,
-        lot_number: "LOT-20241029-001",
+        barcode: inv1 ? inv1.barcode : generateBarcode(),
         quantity: 120,
         unit: "kg",
         to_factory_id: factories[0].id,
@@ -620,7 +630,7 @@ async function seedData() {
       {
         type: "ISSUE",
         item_id: rawMaterials[0].id,
-        lot_number: "LOT-20241029-001",
+        barcode: inv1 ? inv1.barcode : generateBarcode(),
         quantity: 30,
         unit: "kg",
         from_factory_id: factories[0].id,
@@ -631,7 +641,7 @@ async function seedData() {
       {
         type: "TRANSFER_OUT",
         item_id: semiFinished[0].id,
-        lot_number: "LOT-20241029-101",
+        barcode: inv2 ? inv2.barcode : generateBarcode(),
         quantity: 45,
         unit: "kg",
         from_factory_id: factories[1].id,
@@ -841,6 +851,169 @@ async function seedData() {
     console.log("✓ 주문 8개 생성 완료 (B2C 6개, B2B 2개)\n");
 
     /* ===============================
+     * 9. 입고/출고 예정 (PlannedTransaction)
+     * =============================== */
+    console.log("📋 입고/출고 예정 데이터 생성 중...");
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    // 입고 예정 (✅ Items의 unit 사용, 바코드는 optional)
+    const plannedReceives = await db.PlannedTransaction.bulkCreate([
+      {
+        transaction_type: "RECEIVE",
+        item_id: rawMaterials[0].id, // 닭가슴살
+        factory_id: factories[0].id, // 원료 전처리 센터
+        quantity: 200,
+        unit: rawMaterials[0].unit, // ✅ Items의 unit 사용 (kg)
+        status: "PENDING",
+        scheduled_date: tomorrow,
+        requested_by_user_id: users[1].id, // 생산팀장
+        supplier_name: "신선육류 유통",
+        barcode: null, // 입고 완료 시 자동 생성
+        wholesale_price: 6000,
+        storage_condition_id: storageConditions[0].id, // 냉장
+        notes: "정기 입고 예정",
+      },
+      {
+        transaction_type: "RECEIVE",
+        item_id: rawMaterials[3].id, // 연어
+        factory_id: factories[0].id,
+        quantity: 150,
+        unit: rawMaterials[3].unit, // ✅ Items의 unit 사용 (kg)
+        status: "APPROVED",
+        scheduled_date: tomorrow,
+        requested_by_user_id: users[1].id,
+        approved_by_user_id: users[0].id, // CEO 승인
+        approved_at: new Date(),
+        supplier_name: "프리미엄 수산",
+        barcode: null, // 입고 완료 시 자동 생성
+        wholesale_price: 12000,
+        storage_condition_id: storageConditions[1].id, // 냉동
+        notes: "신선 연어 입고 예정",
+      },
+      {
+        transaction_type: "RECEIVE",
+        item_id: rawMaterials[5].id, // 고구마
+        factory_id: factories[0].id,
+        quantity: 100,
+        unit: rawMaterials[5].unit, // ✅ Items의 unit 사용 (kg)
+        status: "PENDING",
+        scheduled_date: nextWeek,
+        requested_by_user_id: users[2].id, // 생산담당
+        supplier_name: "농협 산지 직송",
+        barcode: null, // 입고 완료 시 자동 생성
+        wholesale_price: 2000,
+        storage_condition_id: storageConditions[2].id, // 상온
+        notes: "국내산 고구마",
+      },
+      {
+        transaction_type: "RECEIVE",
+        item_id: supplies[0].id, // 포장재
+        factory_id: factories[2].id, // 완제품 창고
+        quantity: 1000,
+        unit: supplies[0].unit, // ✅ Items의 unit 사용 (개)
+        status: "APPROVED",
+        scheduled_date: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000),
+        requested_by_user_id: users[3].id, // 창고담당
+        approved_by_user_id: users[1].id, // 팀장 승인
+        approved_at: new Date(),
+        supplier_name: "패키징코리아",
+        wholesale_price: 100,
+        storage_condition_id: storageConditions[2].id,
+        notes: "포장재 재고 보충",
+      },
+    ]);
+
+    // 출고 예정 (✅ Items의 unit 사용)
+    const plannedIssues = await db.PlannedTransaction.bulkCreate([
+      {
+        transaction_type: "ISSUE",
+        item_id: finishedProducts[0].id, // 닭고기 육포
+        factory_id: factories[2].id, // 완제품 창고
+        quantity: 100,
+        unit: finishedProducts[0].unit, // ✅ Items의 unit 사용 (EA)
+        status: "APPROVED",
+        scheduled_date: tomorrow,
+        requested_by_user_id: users[3].id, // 창고담당
+        approved_by_user_id: users[1].id, // 팀장 승인
+        approved_at: new Date(),
+        customer_name: "댕댕샵 본점",
+        issue_type: "SHIPPING",
+        shipping_address: "서울특별시 마포구 와우산로 123",
+        notes: "정기 납품 (매주 수요일)",
+      },
+      {
+        transaction_type: "ISSUE",
+        item_id: finishedProducts[2].id, // 연어 트릿
+        factory_id: factories[2].id,
+        quantity: 50,
+        unit: finishedProducts[2].unit, // ✅ Items의 unit 사용 (EA)
+        status: "PENDING",
+        scheduled_date: nextWeek,
+        requested_by_user_id: users[3].id,
+        customer_name: "펫프렌즈 광교점",
+        issue_type: "SHIPPING",
+        shipping_address: "경기도 수원시 영통구 광교중앙로 222",
+        notes: "신규 거래처 첫 출고",
+      },
+      {
+        transaction_type: "ISSUE",
+        item_id: finishedProducts[1].id, // 소고기 트릿
+        factory_id: factories[2].id,
+        quantity: 30,
+        unit: finishedProducts[1].unit, // ✅ Items의 unit 사용 (EA)
+        status: "APPROVED",
+        scheduled_date: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000),
+        requested_by_user_id: users[1].id,
+        approved_by_user_id: users[0].id, // CEO 승인
+        approved_at: new Date(),
+        customer_name: "강아지나라 본사",
+        issue_type: "SHIPPING",
+        shipping_address: "서울특별시 강남구 테헤란로 456",
+        notes: "대량 주문 출고",
+      },
+      {
+        transaction_type: "ISSUE",
+        item_id: rawMaterials[0].id, // 닭가슴살 (생산용)
+        factory_id: factories[0].id,
+        quantity: 50,
+        unit: rawMaterials[0].unit, // ✅ Items의 unit 사용 (kg)
+        status: "PENDING",
+        scheduled_date: tomorrow,
+        requested_by_user_id: users[2].id,
+        issue_type: "PRODUCTION",
+        notes: "제조 공정용 원료 출고",
+      },
+      {
+        transaction_type: "ISSUE",
+        item_id: finishedProducts[4].id, // 치킨 큐브
+        factory_id: factories[2].id,
+        quantity: 20,
+        unit: finishedProducts[4].unit, // ✅ Items의 unit 사용 (EA)
+        status: "CANCELLED",
+        scheduled_date: today,
+        requested_by_user_id: users[3].id,
+        customer_name: "펫샵 명동점",
+        issue_type: "SHIPPING",
+        shipping_address: "서울특별시 중구 명동길 789",
+        rejection_reason: "고객사 요청으로 배송일 변경됨",
+        notes: "다음 주로 일정 조정 필요",
+      },
+    ]);
+
+    console.log("✓ 입고 예정 4개 생성 완료");
+    console.log("  - PENDING: 2개");
+    console.log("  - APPROVED: 2개");
+    console.log("✓ 출고 예정 5개 생성 완료");
+    console.log("  - PENDING: 2개");
+    console.log("  - APPROVED: 3개");
+    console.log("  - CANCELLED: 1개\n");
+
+    /* ===============================
      * 완료
      * =============================== */
     console.log("========================================");
@@ -861,7 +1034,8 @@ async function seedData() {
     console.log("  - 재고: 9개");
     console.log("  - 재고 이동: 3개");
     console.log("  - 주문: 8개 (B2C 6개, B2B 2개)");
-    console.log("  - 배송 배치: 1개\n");
+    console.log("  - 배송 배치: 1개");
+    console.log("  - 입고/출고 예정: 9개 (입고 4개, 출고 5개)\n");
 
     console.log("🔐 로그인 정보:");
     console.log("  - CEO: ceo@dogsnack.com / password123");

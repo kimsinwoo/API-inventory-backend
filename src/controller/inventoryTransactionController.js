@@ -166,7 +166,7 @@ exports.monthlyUtilization = async (req, res, next) => {
     const endDate = dayjs(`${year}-${month}-01`).endOf("month").toISOString();
 
     const stats = await svc.getTransactionStats({
-      factoryId,
+      factoryId: factoryId ? Number(factoryId) : undefined,
       startDate,
       endDate,
     });

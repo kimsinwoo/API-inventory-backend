@@ -25,7 +25,7 @@ exports.validateReceiveTransaction = validate({
     itemId: z.coerce.number().positive("품목 ID는 양수여야 합니다"),
     factoryId: z.coerce.number().positive("공장 ID는 양수여야 합니다"),
     storageConditionId: z.coerce.number().positive("보관 조건 ID는 양수여야 합니다"),
-    lotNumber: z.string().trim().min(1, "LOT 번호는 필수입니다").max(50),
+    // barcode는 서버에서 자동 생성되므로 제거됨
     wholesalePrice: z.coerce.number().min(0, "도매가는 0 이상이어야 합니다"),
     quantity: z.coerce.number().positive("수량은 양수여야 합니다"),
     unit: z.string().trim().min(1, "단위는 필수입니다").max(10),

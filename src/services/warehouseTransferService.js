@@ -22,8 +22,11 @@ const dayjs = require("dayjs");
  * 🔹 FIFO 출고 로직 (개선)
  * =============================== */
 async function fifoIssue({ itemId, factoryId, quantity, t }) {
+  console.log('[fifoIssue] itemId:', itemId, 'factoryId:', factoryId, 'quantity:', quantity);
   let remain = Number(quantity);
-  if (remain <= 0) return { issued: 0, traces: [] };
+  if (!quantity || isNaN(remain) || remain <= 0) {
+    throw new Error(`fifoIssue: 잘못된 수량 요청(quantity=${quantity})`);
+  }
 
   // 유통기한이 가까운 순서대로 출고 (FIFO + 유통기한 우선)
   const lots = await Inventories.findAll({
@@ -42,7 +45,7 @@ async function fifoIssue({ itemId, factoryId, quantity, t }) {
   });
 
   if (lots.length === 0) {
-    throw new Error("출고 가능한 재고가 없습니다");
+    throw new Error(`[fifoIssue] 출고 가능한 재고 lot 없음 (itemId=${itemId}, factoryId=${factoryId})`);
   }
 
   const traces = [];
@@ -68,10 +71,13 @@ async function fifoIssue({ itemId, factoryId, quantity, t }) {
 
   if (remain > 1e-9) {
     throw new Error(
-      `재고가 부족합니다. 요청: ${quantity}, 가능: ${issued}`
+      `fifoIssue: 재고 부족(요청: ${quantity}, 가능: ${issued}), remain: ${remain}`
     );
   }
-
+  if (issued <= 0) {
+    throw new Error('fifoIssue: 출고된 수량이 0입니다 (수량 부족/로직 오류)');
+  }
+  console.log('[fifoIssue] complete, issued:', issued, 'traces:', traces);
   return { issued, traces };
 }
 
@@ -101,6 +107,11 @@ exports.transferBetweenLocations = async (payload, userId) => {
     transferType = "OTHER",
     note,
   } = payload;
+  console.log('[transferBetweenLocations] payload received:', payload);
+
+  if (!itemId || !sourceLocationId || !destLocationId || !quantity || !unit) {
+    throw new Error('[transferBetweenLocations] 필수 파라미터 누락');
+  }
 
   if (sourceLocationId === destLocationId) {
     throw new Error("출발지와 도착지가 동일합니다");
@@ -191,6 +202,7 @@ exports.transferBetweenLocations = async (payload, userId) => {
       quantity,
       t,
     });
+    if (issued <= 0) { throw new Error(`transferBetweenLocations: 출고 결과 issued=0, traces=${JSON.stringify(traces)}`); }
 
     const now = dayjs();
 

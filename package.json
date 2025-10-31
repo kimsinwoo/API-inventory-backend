@@ -11,10 +11,14 @@
     "start": "nodemon src/app.js",
     "seed": "node seed-data.js",
     "seed:anyikong": "node seed-anyikong-data.js",
+    "seed:petsnack": "node seed-petsnack-data.js",
     "backup": "node scripts/backup-database.js",
     "restore": "node scripts/restore-database.js",
     "reset": "node scripts/reset-database.js",
-    "reset:force": "node scripts/reset-database.js --force"
+    "reset:force": "node scripts/reset-database.js --force",
+    "docs:api": "node scripts/extract-api-regex.js",
+    "docs:api:ast": "node scripts/extract-api-full.js",
+    "docs:api:simple": "node scripts/scan-routes.cjs"
   },
   "author": "",
   "license": "ISC",
@@ -35,5 +39,11 @@
     "sequelize-cli": "^6.6.3",
     "xlsx": "^0.18.5",
     "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "express-list-endpoints": "^7.1.1",
+    "fast-glob": "^3.3.3",
+    "ts-morph": "^27.0.2",
+    "typescript": "^5.9.3"
   }
 }

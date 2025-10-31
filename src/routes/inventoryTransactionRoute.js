@@ -15,7 +15,7 @@ const router = Router();
 // 트랜잭션 목록 조회
 router.get(
   "/",
-  authenticate,
+  // authenticate, // 임시로 인증 비활성화 (개발용)
   vr.validateListTransactions,
   ctrl.list
 );
@@ -23,7 +23,7 @@ router.get(
 // 트랜잭션 통계
 router.get(
   "/stats",
-  authenticate,
+  // authenticate, // 임시로 인증 비활성화 (개발용)
   vr.validateTransactionStats,
   ctrl.stats
 );
@@ -31,14 +31,14 @@ router.get(
 // 월별 입출고 현황 (창고 이용률용)
 router.get(
   "/monthly-utilization",
-  authenticate,
+  // authenticate, // 임시로 인증 비활성화 (개발용)
   ctrl.monthlyUtilization
 );
 
 // 트랜잭션 상세 조회
 router.get(
   "/:id",
-  authenticate,
+  // authenticate, // 임시로 인증 비활성화 (개발용)
   vr.validateTransactionId,
   ctrl.detail
 );
@@ -50,7 +50,7 @@ router.get(
 // 입고
 router.post(
   "/receive",
-  authenticate,
+  // authenticate, // 임시로 인증 비활성화 (개발용)
   vr.validateReceiveTransaction,
   ctrl.receive
 );
@@ -62,7 +62,7 @@ router.post(
 // 출고
 router.post(
   "/issue",
-  authenticate,
+  // authenticate, // 임시로 인증 비활성화 (개발용)
   vr.validateIssueTransaction,
   ctrl.issue
 );
@@ -70,7 +70,7 @@ router.post(
 // 일괄 출고 (배송 관리용)
 router.post(
   "/batch-issue",
-  authenticate,
+  // authenticate, // 임시로 인증 비활성화 (개발용)
   vr.validateBatchIssue,
   ctrl.batchIssue
 );
@@ -82,7 +82,7 @@ router.post(
 // 공장 간 이동
 router.post(
   "/transfer",
-  authenticate,
+  // authenticate, // 임시로 인증 비활성화 (개발용)
   vr.validateTransferTransaction,
   ctrl.transfer
 );

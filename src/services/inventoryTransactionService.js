@@ -15,6 +15,7 @@ const {
 } = db;
 const { Op, fn, col } = require("sequelize");
 const dayjs = require("dayjs");
+const { generateBarcode } = require("../utils/barcodeGenerator");
 
 /* ===============================
  * 🔹 FIFO 출고 로직 (개선)
@@ -54,7 +55,7 @@ async function fifoIssue({ itemId, factoryId, quantity, t }) {
     if (take > 0) {
       await lot.update({ quantity: available - take }, { transaction: t });
       traces.push({
-        lotNumber: lot.lot_number,
+        barcode: lot.barcode,
         lotId: lot.id,
         take,
         expirationDate: lot.expiration_date,
@@ -81,7 +82,6 @@ exports.receiveTransaction = async (payload, userId) => {
     itemId,
     factoryId,
     storageConditionId,
-    lotNumber,
     wholesalePrice,
     quantity,
     receivedAt,
@@ -91,6 +91,7 @@ exports.receiveTransaction = async (payload, userId) => {
     printLabel = false,
     labelSize = "large",
     labelQuantity = 1,
+    barcode: existingBarcode, // 기존 바코드 (공장 이동 시 사용) ✅
   } = payload;
 
   // 사용자 정보 조회
@@ -99,7 +100,7 @@ exports.receiveTransaction = async (payload, userId) => {
   
   if (userId) {
     const user = await User.findByPk(userId, {
-      include: [{ model: UserProfile, attributes: ["full_name", "position"] }],
+      include: [{ model: UserProfile, as: "UserProfile", attributes: ["full_name", "position"] }],
     });
     if (user && user.UserProfile) {
       actorName = user.UserProfile.full_name;
@@ -131,10 +132,19 @@ exports.receiveTransaction = async (payload, userId) => {
     throw new Error(`보관 조건(ID: ${storageConditionId})을 찾을 수 없습니다`);
   }
 
-  // 유통기한 자동 계산
-  const calculatedExpirationDate = dayjs(receivedAt)
+  // 유통기한 자동 계산 (first_received_at 기준)
+  const baseDate = firstReceivedAt ?? receivedAt;
+  const calculatedExpirationDate = dayjs(baseDate)
     .add(item.expiration_date || 365, "day")
     .format("YYYY-MM-DD");
+
+  // 바코드: 기존 바코드가 있으면 사용, 없으면 새로 생성 ✅
+  const barcode = existingBarcode || generateBarcode(
+    itemId,
+    receivedAt,
+    baseDate,
+    calculatedExpirationDate
+  );
 
   return sequelize.transaction(async (t) => {
     // 재고 생성
@@ -143,11 +153,11 @@ exports.receiveTransaction = async (payload, userId) => {
         item_id: itemId,
         factory_id: factoryId,
         storage_condition_id: storageConditionId,
-        lot_number: String(lotNumber).trim(),
+        barcode,
         wholesale_price: Number(wholesalePrice),
         quantity: Number(quantity),
         received_at: receivedAt,
-        first_received_at: firstReceivedAt ?? receivedAt,
+        first_received_at: baseDate,
         expiration_date: calculatedExpirationDate,
         status: "Normal",
         unit: String(unit).trim(),
@@ -168,7 +178,7 @@ exports.receiveTransaction = async (payload, userId) => {
       {
         type: "RECEIVE",
         item_id: itemId,
-        lot_number: inv.lot_number,
+        barcode: inv.barcode,
         quantity: Number(quantity),
         unit,
         from_factory_id: null,
@@ -190,9 +200,9 @@ exports.receiveTransaction = async (payload, userId) => {
         const labelData = {
           labelSize,
           productName: item.name,
-          manufactureDate: dayjs(receivedAt).format("YYYY-MM-DD"),
+          manufactureDate: dayjs(baseDate).format("YYYY-MM-DD"),
           expiryDate: dayjs(calculatedExpirationDate).format("YYYY-MM-DD"),
-          lotNumber: inv.lot_number,
+          barcode: inv.barcode,
           quantity: Number(quantity),
           unit,
         };
@@ -255,7 +265,7 @@ exports.issueTransaction = async (payload, userId) => {
   
   if (userId) {
     const user = await User.findByPk(userId, {
-      include: [{ model: UserProfile, attributes: ["full_name", "position"] }],
+      include: [{ model: UserProfile, as: "UserProfile", attributes: ["full_name", "position"] }],
     });
     if (user && user.UserProfile) {
       actorName = user.UserProfile.full_name;
@@ -298,7 +308,7 @@ exports.issueTransaction = async (payload, userId) => {
         {
           type: "ISSUE",
           item_id: itemId,
-          lot_number: tr.lotNumber,
+          barcode: tr.barcode,
           quantity: tr.take,
           unit,
           from_factory_id: factoryId,
@@ -347,7 +357,7 @@ exports.transferTransaction = async (payload, userId) => {
   
   if (userId) {
     const user = await User.findByPk(userId, {
-      include: [{ model: UserProfile, attributes: ["full_name", "position"] }],
+      include: [{ model: UserProfile, as: "UserProfile", attributes: ["full_name", "position"] }],
     });
     if (user && user.UserProfile) {
       actorName = user.UserProfile.full_name;
@@ -381,7 +391,7 @@ exports.transferTransaction = async (payload, userId) => {
         {
           type: "TRANSFER_OUT",
           item_id: itemId,
-          lot_number: tr.lotNumber,
+          barcode: tr.barcode,
           quantity: tr.take,
           unit,
           from_factory_id: sourceFactoryId,
@@ -393,19 +403,27 @@ exports.transferTransaction = async (payload, userId) => {
       );
     }
 
-    // 도착 공장에 재고 생성
-    const lotNum = `TR-${itemId}-${now.valueOf()}`;
+    // 도착 공장에 재고 생성 (새 바코드 발급)
+    const transferDate = now.toDate();
+    const transferExpiration = now.add(item.expiration_date || 365, "day").format("YYYY-MM-DD");
+    const transferBarcode = generateBarcode(
+      itemId,
+      transferDate,
+      transferDate,
+      transferExpiration
+    );
+    
     const inv = await Inventories.create(
       {
         item_id: itemId,
         factory_id: destFactoryId,
         storage_condition_id: storageConditionId,
-        lot_number: lotNum,
+        barcode: transferBarcode,
         wholesale_price: 0,
         quantity: issued,
-        received_at: now.toDate(),
-        first_received_at: now.toDate(),
-        expiration_date: now.add(item.expiration_date || 365, "day").format("YYYY-MM-DD"),
+        received_at: transferDate,
+        first_received_at: transferDate,
+        expiration_date: transferExpiration,
         status: "Normal",
         unit: String(unit).trim(),
       },
@@ -417,7 +435,7 @@ exports.transferTransaction = async (payload, userId) => {
       {
         type: "TRANSFER_IN",
         item_id: itemId,
-        lot_number: inv.lot_number,
+        barcode: inv.barcode,
         quantity: issued,
         unit,
         from_factory_id: sourceFactoryId,
@@ -498,6 +516,10 @@ exports.listTransactions = async (filter = {}) => {
     limit = 20,
   } = filter;
 
+  // 페이지와 리미트를 명시적으로 숫자로 변환
+  const pageNum = Number(page);
+  const limitNum = Number(limit);
+
   const where = {};
 
   // 타입 필터
@@ -512,7 +534,7 @@ exports.listTransactions = async (filter = {}) => {
   }
 
   // 품목 필터
-  if (itemId) where.item_id = itemId;
+  if (itemId) where.item_id = Number(itemId);
 
   // 날짜 필터
   if (startDate) where.occurred_at = { [Op.gte]: new Date(startDate) };
@@ -521,16 +543,18 @@ exports.listTransactions = async (filter = {}) => {
 
   // 공장 필터
   if (factoryId) {
+    const factoryIdNum = Number(factoryId);
     where[Op.or] = [
-      { from_factory_id: factoryId },
-      { to_factory_id: factoryId },
+      { from_factory_id: factoryIdNum },
+      { to_factory_id: factoryIdNum },
     ];
   }
 
   // 사용자 필터 (actor_name으로 검색)
   if (userId) {
-    const user = await User.findByPk(userId, {
-      include: [{ model: UserProfile, attributes: ["full_name"] }],
+    const userIdNum = Number(userId);
+    const user = await User.findByPk(userIdNum, {
+      include: [{ model: UserProfile, as: "UserProfile", attributes: ["full_name"] }],
     });
     if (user && user.UserProfile) {
       where.actor_name = user.UserProfile.full_name;
@@ -540,31 +564,34 @@ exports.listTransactions = async (filter = {}) => {
   const { rows, count } = await InventoryMovement.findAndCountAll({
     where,
     include: [
-      { model: Items, attributes: ["id", "code", "name", "category"] },
-      { model: Factory, as: "fromFactory", attributes: ["id", "name"] },
-      { model: Factory, as: "toFactory", attributes: ["id", "name"] },
+      { model: Items, attributes: ["id", "code", "name", "category"], required: false },
+      { model: Factory, as: "fromFactory", attributes: ["id", "name"], required: false },
+      { model: Factory, as: "toFactory", attributes: ["id", "name"], required: false },
     ],
     order: [
-      ["occurred_at", "DESC"],
+      [sequelize.fn('COALESCE', sequelize.col('occurred_at'), sequelize.col('InventoryMovement.created_at')), "DESC"],
       ["id", "DESC"],
     ],
-    offset: (page - 1) * limit,
-    limit,
+    offset: (pageNum - 1) * limitNum,
+    limit: limitNum,
   });
 
-  const korType = (t) =>
-    ({
-      RECEIVE: "입고",
-      ISSUE: "출고",
-      TRANSFER_OUT: "이동(출발)",
-      TRANSFER_IN: "이동(도착)",
-    }[t] ?? t);
+  // 이전: type은 한글로 반환됨
+  // const korType = (t) =>
+  //   ({
+  //     RECEIVE: "입고",
+  //     ISSUE: "출고",
+  //     TRANSFER_OUT: "이동(출발)",
+  //     TRANSFER_IN: "이동(도착)",
+  //   }[t] ?? t);
 
+  // 요청된 대로 DB에 저장된 type 값을 그대로 반환(type 필드는 영문)
   const data = rows.map((r) => ({
     id: r.id,
-    time: dayjs(r.occurred_at).format("YYYY-MM-DD HH:mm:ss"),
-    type: korType(r.type),
-    typeRaw: r.type,
+    time: r.occurred_at 
+      ? dayjs(r.occurred_at).format("YYYY-MM-DD HH:mm:ss")
+      : dayjs(r.createdAt).format("YYYY-MM-DD HH:mm:ss"),
+    type: r.type, // <---- DB의 영문 type 그대로 반환
     item: r.Item
       ? {
           id: r.Item.id,
@@ -573,27 +600,27 @@ exports.listTransactions = async (filter = {}) => {
           category: r.Item.category,
         }
       : null,
-    lotNumber: r.lot_number,
-    quantity: Number(r.quantity),
-    unit: r.unit,
+    barcode: r.barcode || "N/A",
+    quantity: Number(r.quantity) || 0,
+    unit: r.unit || "",
     fromFactory: r.fromFactory
       ? { id: r.fromFactory.id, name: r.fromFactory.name }
       : null,
     toFactory: r.toFactory
       ? { id: r.toFactory.id, name: r.toFactory.name }
       : null,
-    actorName: r.actor_name,
-    note: r.note,
+    actorName: r.actor_name || "시스템",
+    note: r.note || "",
     createdAt: r.createdAt,
   }));
 
   return {
     items: data,
     meta: {
-      page,
-      limit,
+      page: pageNum,
+      limit: limitNum,
       total: count,
-      totalPages: Math.ceil(count / limit),
+      totalPages: Math.ceil(count / limitNum),
     },
   };
 };
@@ -614,18 +641,10 @@ exports.getTransactionById = async (id) => {
     throw new Error("트랜잭션을 찾을 수 없습니다");
   }
 
-  const korType = (t) =>
-    ({
-      RECEIVE: "입고",
-      ISSUE: "출고",
-      TRANSFER_OUT: "이동(출발)",
-      TRANSFER_IN: "이동(도착)",
-    }[t] ?? t);
-
+  // DB의 type 값을 그대로 반환 (한글 변환 X)
   return {
     id: movement.id,
-    type: korType(movement.type),
-    typeRaw: movement.type,
+    type: movement.type, // <--- 영문 type 그대로 반환
     item: movement.Item
       ? {
           id: movement.Item.id,
@@ -662,9 +681,10 @@ exports.getTransactionStats = async (filter = {}) => {
   if (endDate)
     where.occurred_at = { ...(where.occurred_at ?? {}), [Op.lte]: new Date(endDate) };
   if (factoryId) {
+    const factoryIdNum = Number(factoryId);
     where[Op.or] = [
-      { from_factory_id: factoryId },
-      { to_factory_id: factoryId },
+      { from_factory_id: factoryIdNum },
+      { to_factory_id: factoryIdNum },
     ];
   }
 

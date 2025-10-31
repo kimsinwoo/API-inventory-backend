@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
       id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
       type: { type: DataTypes.ENUM("RECEIVE", "ISSUE", "TRANSFER_OUT", "TRANSFER_IN"), allowNull: false },
       item_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-      lot_number: { type: DataTypes.STRING(50), allowNull: false },
+      barcode: { type: DataTypes.STRING(14), allowNull: false, comment: "14자리 유니크 바코드: 타임스탬프(13) + 체크섬(1)" },
       quantity: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
       unit: { type: DataTypes.STRING(10), allowNull: false },
       from_factory_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },

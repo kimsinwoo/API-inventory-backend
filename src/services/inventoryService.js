@@ -398,7 +398,7 @@ exports.movements = async ({ itemId, factoryId, from, to, page = 1, limit = 20 }
   });
 
   const korType = (t) =>
-    ({ RECEIVE: "입고", ISSUE: "소모", TRANSFER_OUT: "이동", TRANSFER_IN: "생산" }[t] ?? t);
+    ({ RECEIVE: "입고", ISSUE: "소모", TRANSFER_OUT: "이동", TRANSFER_IN: "입고" }[t] ?? t);
 
   const data = rows.map((r) => ({
     time: dayjs(r.occurred_at).format("YYYY-MM-DD HH:mm"),

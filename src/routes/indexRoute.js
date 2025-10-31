@@ -13,9 +13,16 @@ router.use("/items", require("./itemRoute"));
 router.use("/boms", require("./bomRoute"));
 router.use("/inventories", require("./inventoryRoute"));
 router.use("/inventory-transactions", require("./inventoryTransactionRoute"));
+router.use("/planned-transactions", require("./plannedTransactionRoute"));
 router.use("/warehouse-transfers", require("./warehouseTransferRoute"));
 router.use("/storage-conditions", require("./storageConditionRoute"));
 router.use("/order-import", require("./orderImportRoute"));
+
+// 생산 작업 지시서
+router.use("/work-orders", require("./workOrderRoute"));
+
+// 바코드 기반 물류 작업
+router.use("/barcode", require("./barcodeRoute"));
 
 // 배송 관리
 router.use("/shipping", require("./shippingRoute"));
