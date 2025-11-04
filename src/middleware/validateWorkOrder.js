@@ -8,6 +8,7 @@ function validate(schemas) {
     try {
       if (schemas.query) req.query = schemas.query.parse(req.query);
       if (schemas.body) req.body = schemas.body.parse(req.body);
+      if (schemas.params) req.params = schemas.params.parse(req.params);
       next();
     } catch (e) {
       res.status(400).json({
