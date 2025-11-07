@@ -224,4 +224,166 @@ router.post("/ship", validateShip, barcodeController.shipByBarcode);
  */
 router.get("/history/:barcode", barcodeController.getBarcodeHistory);
 
+/* ===============================
+ * 사용 가능한 프린터 목록 조회
+ * =============================== */
+/**
+ * GET /api/barcode/printers
+ * @desc Windows에서 사용 가능한 프린터 목록 조회
+ * @access Private
+ */
+router.get("/printers", barcodeController.getPrinters);
+
+/* ===============================
+ * Finished 카테고리 품목 조회 (라벨용)
+ * =============================== */
+/**
+ * GET /api/barcode/items/finished
+ * @desc Finished 카테고리 품목만 조회 (라벨 생성용)
+ * @access Private
+ */
+router.get("/items/finished", barcodeController.getFinishedItems);
+
+/* ===============================
+ * 라벨 생성 및 조회
+ * =============================== */
+/**
+ * POST /api/barcode/labels
+ * @desc 라벨 생성 및 저장
+ * @access Private
+ */
+const validateCreateLabel = validate({
+  body: z.object({
+    itemId: z
+      .number()
+      .int()
+      .positive("itemId는 1 이상이어야 합니다")
+      .or(z.string().regex(/^\d+$/).transform(Number)),
+    inventoryId: z
+      .number()
+      .int()
+      .positive("inventoryId는 1 이상이어야 합니다")
+      .or(z.string().regex(/^\d+$/).transform(Number)),
+    barcode: z.string().min(1, "barcode가 필요합니다"),
+    quantity: z
+      .number()
+      .positive()
+      .or(z.string().regex(/^\d+(\.\d+)?$/).transform(Number))
+      .optional(),
+    unit: z.string().optional(),
+  }),
+});
+
+router.post("/labels", validateCreateLabel, barcodeController.createLabel);
+
+/**
+ * GET /api/barcode/labels/barcode/:barcode
+ * @desc 바코드로 라벨 조회
+ * @access Private
+ */
+router.get("/labels/barcode/:barcode", barcodeController.getLabelsByBarcode);
+
+/**
+ * GET /api/barcode/labels/inventory/:inventoryId
+ * @desc 재고 ID로 라벨 조회
+ * @access Private
+ */
+router.get("/labels/inventory/:inventoryId", barcodeController.getLabelsByInventoryId);
+
+/**
+ * GET /api/barcode/labels/:labelId
+ * @desc 라벨 ID로 라벨 조회
+ * @access Private
+ */
+router.get("/labels/:labelId", barcodeController.getLabelById);
+
+/**
+ * GET /api/barcode/labels
+ * @desc 저장된 라벨 전체 조회 (page, limit 지원)
+ * @access Private
+ */
+router.get("/labels", barcodeController.getAllLabels);
+
+/* ===============================
+ * React 컴포넌트를 PDF로 변환 후 바로 프린트
+ * =============================== */
+/**
+ * POST /api/barcode/print-label
+ * @desc React 컴포넌트 HTML을 받아서 PDF로 변환 후 바로 프린트
+ * @access Private
+ */
+const validatePrintLabel = validate({
+  body: z
+    .object({
+      htmlContent: z.string().min(1, "htmlContent가 필요합니다"),
+      printerName: z.string().min(1, "printerName이 필요합니다"),
+      printCount: z
+        .number()
+        .int()
+        .positive("printCount는 1 이상이어야 합니다")
+        .or(z.string().regex(/^\d+$/).transform(Number))
+        .default(1),
+      pdfOptions: z
+        .object({
+          width: z.string().optional(),
+          height: z.string().optional(),
+          margin: z.string().optional(),
+        })
+        .optional(),
+      labelType: z.string().optional(),
+      productName: z.string().optional(),
+      storageCondition: z.string().optional(),
+      registrationNumber: z.string().optional(),
+      categoryAndForm: z.string().optional(),
+      ingredients: z.string().optional(),
+      rawMaterials: z.string().optional(),
+      actualWeight: z.string().optional(),
+      itemId: z
+        .number()
+        .int()
+        .positive()
+        .or(z.string().regex(/^\d+$/).transform(Number))
+        .optional(),
+    })
+    .passthrough(),
+});
+
+router.post("/print-label", validatePrintLabel, barcodeController.printLabelFromReact);
+
+/* ===============================
+ * 저장된 라벨 출력
+ * =============================== */
+/**
+ * POST /api/barcode/print-saved-label
+ * @desc 저장된 라벨을 HTML로 변환 후 PDF로 변환하여 프린트
+ * @access Private
+ */
+const validatePrintSavedLabel = validate({
+  body: z.object({
+    labelId: z
+      .number()
+      .int()
+      .positive("labelId는 1 이상이어야 합니다")
+      .or(z.string().regex(/^\d+$/).transform(Number)),
+    printerName: z.string().min(1, "printerName이 필요합니다"),
+    manufactureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "제조일자는 YYYY-MM-DD 형식이어야 합니다"),
+    expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "유통기한은 YYYY-MM-DD 형식이어야 합니다"),
+    printCount: z
+      .number()
+      .int()
+      .positive("printCount는 1 이상이어야 합니다")
+      .or(z.string().regex(/^\d+$/).transform(Number))
+      .default(1),
+    pdfOptions: z
+      .object({
+        width: z.string().optional(),
+        height: z.string().optional(),
+        margin: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
+
+router.post("/print-saved-label", validatePrintSavedLabel, barcodeController.printSavedLabel);
+
 module.exports = router;

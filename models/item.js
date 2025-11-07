@@ -8,6 +8,7 @@ module.exports = (sequelize) => {
       Inventories.belongsTo(models.Items, { foreignKey: "item_id" });
       Inventories.belongsTo(models.Factory, { foreignKey: "factory_id" });
       Inventories.belongsTo(models.StorageCondition, { foreignKey: "storage_condition_id" });
+      Inventories.hasMany(models.Label, { foreignKey: "inventory_id", as: "labels" });
     }
   }
 

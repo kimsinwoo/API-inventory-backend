@@ -190,48 +190,72 @@ exports.receiveTransaction = async (payload, userId) => {
       { transaction: t }
     );
 
-    // 라벨 생성 (옵션)
+    // 라벨 생성 및 데이터베이스 저장 (옵션)
+    // Finished 카테고리인 경우에만 라벨 저장
     let labelInfo = null;
-    if (printLabel) {
+    if (printLabel && item.category === "Finished") {
       try {
         const labelService = require("./labelService");
-        const dayjs = require("dayjs");
         
-        const labelData = {
-          labelSize,
-          productName: item.name,
-          manufactureDate: dayjs(baseDate).format("YYYY-MM-DD"),
-          expiryDate: dayjs(calculatedExpirationDate).format("YYYY-MM-DD"),
+        const labelDataForDb = {
+          inventoryId: inv.id,
           barcode: inv.barcode,
+          itemId: itemId,
+          productName: item.name,
+          registrationCode: item.code, // 등록번호 (item.code)
           quantity: Number(quantity),
           unit,
+          labelSize: labelSize || "large", // 기본값 사용
+          labelData: {
+            factoryId: factoryId,
+            storageConditionId: storageConditionId,
+            receivedAt: receivedAt,
+            firstReceivedAt: baseDate,
+          },
         };
         
-        // 라벨 개수만큼 생성
-        const labels = [];
+        // 라벨 개수만큼 데이터베이스에 저장
+        const savedLabels = [];
         for (let i = 0; i < labelQuantity; i++) {
-          const label = await labelService.generateLabel(labelData);
-          labels.push(label);
+          const savedLabel = await labelService.saveLabel(labelDataForDb, { transaction: t });
+          savedLabels.push(savedLabel);
         }
         
         labelInfo = {
           generated: true,
-          labelSize,
+          saved: true,
+          labelSize: labelDataForDb.labelSize,
           labelQuantity,
-          labels,
-          message: `${labelQuantity}개의 라벨이 생성되었습니다`,
+          labels: savedLabels.map((label) => ({
+            id: label.id,
+            barcode: label.barcode,
+            productName: label.product_name,
+            registrationCode: label.registration_code,
+            quantity: label.quantity,
+            unit: label.unit,
+            labelSize: label.label_size,
+          })),
+          message: `${labelQuantity}개의 라벨이 생성되어 데이터베이스에 저장되었습니다`,
         };
       } catch (error) {
-        console.error("라벨 생성 실패:", error);
+        console.error("라벨 생성 및 저장 실패:", error);
         labelInfo = {
           generated: false,
-          error: "라벨 생성에 실패했습니다",
+          saved: false,
+          error: "라벨 생성 및 저장에 실패했습니다",
           message: error.message,
         };
       }
+    } else if (printLabel && item.category !== "Finished") {
+      labelInfo = {
+        generated: false,
+        saved: false,
+        message: "라벨은 Finished 카테고리(완제품)만 저장할 수 있습니다",
+      };
     } else {
       labelInfo = {
         generated: false,
+        saved: false,
         message: "라벨 프린트를 선택하지 않았습니다",
       };
     }

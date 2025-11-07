@@ -4,6 +4,8 @@
 const ejs = require("ejs");
 const path = require("path");
 const barcodeLib = require("bwip-js");
+const db = require("../../models");
+const { Label, LabelTemplate } = db;
 
 /**
  * 바코드 생성 (Base64)
@@ -83,6 +85,167 @@ exports.generateLabel = async (labelData) => {
 };
 
 /**
+ * 저장된 라벨 데이터로 HTML 생성
+ * @param {Object} labelRecord - 데이터베이스에서 조회한 라벨 레코드
+ * @param {Object} options - 옵션 (manufactureDate, expiryDate 등)
+ * @returns {Promise<Object>} - HTML과 라벨 정보
+ */
+exports.generateLabelFromRecord = async (labelRecord, options = {}) => {
+  const { manufactureDate, expiryDate } = options;
+  
+  // 제조일자와 유통기한은 출력 시 입력받아야 함
+  if (!manufactureDate || !expiryDate) {
+    throw new Error("제조일자와 유통기한이 필요합니다");
+  }
+
+  const labelData = {
+    labelSize: labelRecord.label_size || "large",
+    productName: labelRecord.product_name,
+    manufactureDate,
+    expiryDate,
+    lotNumber: labelRecord.barcode,
+    quantity: labelRecord.quantity,
+    unit: labelRecord.unit,
+  };
+
+  const result = await exports.generateLabel(labelData);
+  
+  return {
+    ...result,
+    labelId: labelRecord.id,
+    inventoryId: labelRecord.inventory_id,
+    barcode: labelRecord.barcode,
+    registrationCode: labelRecord.registration_code,
+  };
+};
+
+/**
+ * 라벨을 데이터베이스에 저장
+ * @param {Object} labelData - 라벨 데이터
+ * @param {Object} options - 옵션 (transaction 등)
+ * @returns {Promise<Object>} - 저장된 라벨 객체
+ */
+exports.saveLabel = async (labelData, options = {}) => {
+  const {
+    inventoryId,
+    barcode,
+    itemId,
+    productName,
+    registrationCode,
+    quantity,
+    unit,
+    labelSize = "large",
+    labelData: additionalData = null,
+  } = labelData;
+
+  const label = await Label.create(
+    {
+      inventory_id: inventoryId,
+      barcode,
+      item_id: itemId,
+      product_name: productName,
+      registration_code: registrationCode,
+      quantity: Number(quantity),
+      unit,
+      label_size: labelSize,
+      label_data: additionalData,
+      // manufacture_date와 expiry_date는 출력 시 입력받으므로 저장하지 않음
+    },
+    options
+  );
+
+  return label;
+};
+
+/**
+ * 여러 라벨을 생성하고 데이터베이스에 저장
+ * @param {Array} labelsData - 라벨 데이터 배열
+ * @param {Object} options - 옵션 (transaction 등)
+ * @returns {Promise<Array>} - 저장된 라벨 배열
+ */
+exports.saveMultipleLabels = async (labelsData, options = {}) => {
+  const labels = [];
+
+  for (const labelData of labelsData) {
+    const label = await exports.saveLabel(labelData, options);
+    labels.push(label);
+  }
+
+  return labels;
+};
+
+/**
+ * 바코드로 라벨 조회
+ * @param {string} barcode - 바코드
+ * @returns {Promise<Array>} - 라벨 배열
+ */
+exports.getLabelsByBarcode = async (barcode) => {
+  const labels = await Label.findAll({
+    where: { barcode },
+    include: [
+      { model: db.Items, as: "item" },
+      { model: db.Inventories, as: "inventory" },
+    ],
+    order: [["created_at", "DESC"]],
+  });
+
+  return labels;
+};
+
+/**
+ * 재고 ID로 라벨 조회
+ * @param {number} inventoryId - 재고 ID
+ * @returns {Promise<Array>} - 라벨 배열
+ */
+exports.getLabelsByInventoryId = async (inventoryId) => {
+  const labels = await Label.findAll({
+    where: { inventory_id: inventoryId },
+    include: [
+      { model: db.Items, as: "item" },
+      { model: db.Inventories, as: "inventory" },
+    ],
+    order: [["created_at", "DESC"]],
+  });
+
+  return labels;
+};
+
+/**
+ * 라벨 ID로 라벨 조회
+ * @param {number} labelId - 라벨 ID
+ * @returns {Promise<Object>} - 라벨 객체
+ */
+exports.getLabelById = async (labelId) => {
+  const label = await Label.findByPk(labelId, {
+    include: [
+      { model: db.Items, as: "item" },
+      { model: db.Inventories, as: "inventory" },
+    ],
+  });
+
+  return label;
+};
+
+/**
+ * 저장된 모든 라벨 조회 (옵셔널 페이지네이션)
+ * @param {Object} params
+ * @param {number} params.page - 페이지 (기본 1)
+ * @param {number} params.limit - 페이지당 개수 (기본 50)
+ * @returns {Promise<{rows: Array, count: number}>}
+ */
+exports.getAllLabels = async ({ page = 1, limit = 50 } = {}) => {
+  const offset = (Number(page) - 1) * Number(limit);
+
+  const { rows, count } = await LabelTemplate.findAndCountAll({
+    order: [["created_at", "DESC"]],
+    offset,
+    limit: Number(limit),
+  });
+
+  return { rows, count };
+};
+
+/**
  * 여러 라벨 일괄 생성
  */
 exports.generateMultipleLabels = async (labelsData) => {
@@ -106,4 +269,3 @@ exports.generateMultipleLabels = async (labelsData) => {
 
   return results;
 };
-
