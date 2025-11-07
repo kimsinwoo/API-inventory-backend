@@ -346,6 +346,37 @@ exports.getAllLabels = asyncHandler(async (req, res) => {
 });
 
 /* ===============================
+ * GET /api/barcode/labeltemplates/registration/:registrationNumber
+ * registration_number로 LabelTemplate 조회
+ * =============================== */
+exports.getLabelTemplateByRegistrationNumber = asyncHandler(async (req, res) => {
+  const { registrationNumber } = req.params;
+
+  if (!registrationNumber) {
+    return res.status(400).json({
+      ok: false,
+      message: "등록번호가 필요합니다",
+    });
+  }
+
+  const labelService = require("../services/labelService");
+  const labelTemplate = await labelService.getLabelTemplateByRegistrationNumber(registrationNumber);
+
+  if (!labelTemplate) {
+    return res.status(404).json({
+      ok: false,
+      message: "해당 등록번호의 라벨 템플릿을 찾을 수 없습니다",
+    });
+  }
+
+  res.status(200).json({
+    ok: true,
+    message: "라벨 템플릿 조회 성공",
+    data: labelTemplate,
+  });
+});
+
+/* ===============================
  * POST /api/barcode/print-label
  * React 컴포넌트를 받아서 PDF로 변환 후 바로 프린트
  * =============================== */

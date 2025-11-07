@@ -304,6 +304,13 @@ router.get("/labels/:labelId", barcodeController.getLabelById);
  */
 router.get("/labels", barcodeController.getAllLabels);
 
+/**
+ * GET /api/barcode/labeltemplates/registration/:registrationNumber
+ * @desc registration_number로 LabelTemplate 조회
+ * @access Private
+ */
+router.get("/labeltemplates/registration/:registrationNumber", barcodeController.getLabelTemplateByRegistrationNumber);
+
 /* ===============================
  * React 컴포넌트를 PDF로 변환 후 바로 프린트
  * =============================== */

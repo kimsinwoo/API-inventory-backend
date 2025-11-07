@@ -246,6 +246,27 @@ exports.getAllLabels = async ({ page = 1, limit = 50 } = {}) => {
 };
 
 /**
+ * registration_number로 LabelTemplate 조회
+ * @param {string} registrationNumber - 등록번호
+ * @returns {Promise<LabelTemplate|null>}
+ */
+exports.getLabelTemplateByRegistrationNumber = async (registrationNumber) => {
+  if (!registrationNumber) {
+    return null;
+  }
+
+  // registration_number로 최신 템플릿 조회 (여러 개일 경우 가장 최근 것)
+  const labelTemplate = await LabelTemplate.findOne({
+    where: {
+      registration_number: registrationNumber,
+    },
+    order: [["created_at", "DESC"]],
+  });
+
+  return labelTemplate;
+};
+
+/**
  * 여러 라벨 일괄 생성
  */
 exports.generateMultipleLabels = async (labelsData) => {
