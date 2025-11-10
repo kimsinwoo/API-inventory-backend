@@ -182,21 +182,76 @@ exports.printLabelFromReact = async ({
  */
 async function getWindowsPrinters() {
   try {
-    const command = `powershell -Command "Get-Printer | Select-Object Name, PrinterStatus, DriverName | ConvertTo-Json"`;
-    const { stdout } = await execAsync(command);
+    // PowerShell 실행 정책 확인 및 우회
+    // -ExecutionPolicy Bypass를 사용하여 실행 정책 문제 해결
+    const command = `powershell -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; try { $printers = Get-Printer -ErrorAction Stop | Select-Object Name, PrinterStatus, DriverName; if ($printers) { $printers | ConvertTo-Json -Depth 10 } else { '[]' } } catch { Write-Error $_.Exception.Message; '[]' }"`;
+    
+    const { stdout, stderr } = await execAsync(command, {
+      maxBuffer: 1024 * 1024 * 10, // 10MB 버퍼
+      timeout: 30000, // 30초 타임아웃
+      encoding: 'utf8',
+    });
 
-    const printers = JSON.parse(stdout);
+    // stderr가 있으면 로그만 남기고 계속 진행
+    if (stderr && stderr.trim() && !stderr.includes('[]')) {
+      console.warn("프린터 목록 조회 경고:", stderr);
+    }
+
+    // stdout이 비어있거나 '[]'만 있으면 빈 배열 반환
+    const trimmedOutput = stdout ? stdout.trim() : '';
+    if (!trimmedOutput || trimmedOutput === '[]' || trimmedOutput === '') {
+      console.warn("프린터 목록이 비어있습니다. Windows 프린터 설정을 확인해주세요.");
+      return [];
+    }
+
+    // JSON 파싱
+    let printers;
+    try {
+      printers = JSON.parse(trimmedOutput);
+    } catch (parseError) {
+      console.error("프린터 목록 JSON 파싱 실패:", parseError);
+      console.error("원본 출력 (처음 500자):", trimmedOutput.substring(0, 500));
+      
+      // 파싱 실패 시 빈 배열 반환
+      return [];
+    }
+
+    // null이나 undefined 처리
+    if (!printers) {
+      console.warn("프린터 데이터가 null입니다.");
+      return [];
+    }
+
+    // 배열이 아니면 배열로 변환
     const printerList = Array.isArray(printers) ? printers : [printers];
 
-    return printerList
-      .filter(Boolean)
+    // 유효한 프린터만 필터링 및 매핑
+    const result = printerList
+      .filter((printer) => printer && printer.Name && typeof printer.Name === 'string')
       .map((printer) => ({
-        name: printer.Name,
-        status: printer.PrinterStatus,
-        driver: printer.DriverName,
-      }));
+        name: String(printer.Name || "").trim(),
+        status: String(printer.PrinterStatus || "Unknown").trim(),
+        driver: String(printer.DriverName || "").trim(),
+      }))
+      .filter((printer) => printer.name.length > 0); // 이름이 비어있지 않은 것만
+
+    console.log(`프린터 목록 조회 성공: ${result.length}개 프린터 발견`);
+    if (result.length > 0) {
+      console.log("발견된 프린터:", result.map(p => p.name).join(", "));
+    }
+    
+    return result;
   } catch (error) {
     console.error("프린터 목록 조회 실패:", error);
+    console.error("에러 상세:", {
+      message: error.message,
+      code: error.code,
+      signal: error.signal,
+      stdout: error.stdout ? error.stdout.substring(0, 500) : null,
+      stderr: error.stderr ? error.stderr.substring(0, 500) : null,
+    });
+
+    // 빈 배열 반환 (에러 발생 시에도 서버가 중단되지 않도록)
     return [];
   }
 }

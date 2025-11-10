@@ -146,13 +146,32 @@ exports.getBarcodeHistory = asyncHandler(async (req, res) => {
 exports.getPrinters = asyncHandler(async (req, res) => {
   const labelPrintService = require("../services/labelPrintService");
 
-  const printers = await labelPrintService.getAvailablePrinters();
+  try {
+    const printers = await labelPrintService.getAvailablePrinters();
 
-  res.status(200).json({
-    ok: true,
-    message: "프린터 목록 조회 성공",
-    data: printers,
-  });
+    if (!printers || printers.length === 0) {
+      return res.status(200).json({
+        ok: true,
+        message: "프린터가 발견되지 않았습니다. Windows 프린터 설정을 확인해주세요.",
+        data: [],
+        warning: "프린터가 설치되어 있지 않거나 접근할 수 없습니다.",
+      });
+    }
+
+    res.status(200).json({
+      ok: true,
+      message: `프린터 목록 조회 성공 (${printers.length}개)`,
+      data: printers,
+    });
+  } catch (error) {
+    console.error("프린터 목록 조회 컨트롤러 에러:", error);
+    res.status(500).json({
+      ok: false,
+      message: "프린터 목록 조회 중 오류가 발생했습니다",
+      error: error.message,
+      data: [],
+    });
+  }
 });
 
 /* ===============================
