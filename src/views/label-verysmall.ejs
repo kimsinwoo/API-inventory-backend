@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Very Small 라벨</title>
+    <style>
+      @page { size: 26mm 18mm; margin: 0; }
+      body { margin: 0; padding: 0; font-family: 'Nanum Gothic', sans-serif; }
+      .label-verysmall {
+        width: 100%; height: 100%; border: 1px solid #aaa;
+        display: flex; justify-content: center; align-items: center; gap: 4px;
+        box-sizing: border-box;
+      }
+      .product-name {
+        font-size: 6pt; font-weight: bold; transform: rotate(-90deg); white-space: nowrap;
+      }
+      .barcode {
+        max-width: 20mm; height: auto;
+      }
+      .loading { font-size: 5pt; color: gray; }
+    </style>
+  </head>
+  <body>
+    <div class="label-verysmall">
+      <div class="product-name"><%= productName %></div>
+      <% if (isLoadingBarcode) { %>
+        <div class="loading">로딩 중...</div>
+      <% } else if (barcodeBase64) { %>
+        <img src="data:image/png;base64,<%= barcodeBase64 %>" class="barcode" alt="Barcode" />
+      <% } %>
+    </div>
+  </body>
+</html>

@@ -47,7 +47,7 @@ module.exports = {
       },
       html_content: {
         type: Sequelize.TEXT("long"),
-        allowNull: false,
+        allowNull: true,
       },
       printer_name: {
         type: Sequelize.STRING(150),

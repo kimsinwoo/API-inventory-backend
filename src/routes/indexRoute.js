@@ -21,8 +21,8 @@ router.use("/order-import", require("./orderImportRoute"));
 // 생산 작업 지시서
 router.use("/work-orders", require("./workOrderRoute"));
 
-// 바코드 기반 물류 작업
-router.use("/barcode", require("./barcodeRoute"));
+// 라벨 프린트
+router.use("/label", require("./labelRoute"));
 
 // 배송 관리
 router.use("/shipping", require("./shippingRoute"));

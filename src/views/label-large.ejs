@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Medium 라벨</title>
+    <style>
+      @page { size: 80mm 60mm; margin: 0; }
+      body { margin: 0; padding: 0; font-family: 'Nanum Gothic', sans-serif; }
+      .label-medium {
+        width: 100%; height: 100%; padding: 8px 10px; box-sizing: border-box;
+        font-size: 8pt; display: flex; flex-direction: column; justify-content: space-between;
+      }
+      .medium-title { font-size: 13pt; font-weight: bold; }
+      .medium-info p { margin: 2px 0; text-align: left; }
+      .medium-bottom { display: flex; justify-content: flex-end; align-items: flex-end; }
+    </style>
+  </head>
+  <body>
+    <div class="label-medium">
+      <div class="medium-title"><%= productName %></div>
+      <div class="medium-info">
+        <p>등록번호: <%= registrationNumber %> / 제품명: <%= productName %></p>
+        <p>종류 및 형태: <%= categoryAndForm %></p>
+        <p>성분량: <%= ingredients %></p>
+      </div>
+      <div class="medium-bottom">
+        <div class="text-right">
+          <p>제조일자: <%= manufactureDate %></p>
+          <p>유통기한: <%= expiryDate %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

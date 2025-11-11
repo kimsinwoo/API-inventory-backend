@@ -52,10 +52,6 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(50),
         allowNull: true,
       },
-      html_content: {
-        type: DataTypes.TEXT("long"),
-        allowNull: false,
-      },
       printer_name: {
         type: DataTypes.STRING(150),
         allowNull: true,

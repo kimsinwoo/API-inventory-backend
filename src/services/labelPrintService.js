@@ -1,8 +1,8 @@
 /**
  * 라벨 프린트 서비스
- * - React 컴포넌트를 PDF로 변환
+ * - EJS 템플릿을 HTML로 렌더링
+ * - HTML을 PDF로 변환
  * - PDF를 프린터로 출력 또는 파일로 저장 (환경별 처리)
- * - 클라우드 배포 환경 지원
  */
 
 const puppeteer = require("puppeteer");
@@ -10,27 +10,27 @@ const path = require("path");
 const fs = require("fs").promises;
 const { exec } = require("child_process");
 const { promisify } = require("util");
+const ejs = require("ejs");
 const appConfig = require("../../config/appConfig");
 
 const execAsync = promisify(exec);
 
-// 프린터 패키지는 조건부 로드 (클라우드 환경에서는 필요 없음)
+// 프린터 패키지는 조건부 로드
 let printer = null;
 try {
   if (appConfig.printer.enabled && appConfig.printer.type !== "cloud") {
     printer = require("printer");
   }
 } catch (error) {
-  console.warn("프린터 패키지 로드 실패 (클라우드 환경일 수 있음):", error.message);
+  console.warn("프린터 패키지 로드 실패:", error.message);
 }
 
-// Puppeteer 브라우저 인스턴스 (싱글톤 패턴으로 재사용)
+// Puppeteer 브라우저 인스턴스 (싱글톤)
 let browserInstance = null;
 let browserInitPromise = null;
 
 /**
- * Puppeteer 브라우저 인스턴스 초기화 (싱글톤)
- * @returns {Promise<puppeteer.Browser>}
+ * Puppeteer 브라우저 인스턴스 초기화
  */
 async function getBrowser() {
   if (browserInstance) {
@@ -48,7 +48,6 @@ async function getBrowser() {
         args: appConfig.puppeteer.args,
       };
 
-      // 클라우드 환경에서 실행 파일 경로 지정
       if (appConfig.puppeteer.executablePath) {
         launchOptions.executablePath = appConfig.puppeteer.executablePath;
       }
@@ -56,7 +55,6 @@ async function getBrowser() {
       browserInstance = await puppeteer.launch(launchOptions);
       console.log("✓ Puppeteer 브라우저 인스턴스 초기화 완료");
 
-      // 브라우저 종료 시 정리
       browserInstance.on("disconnected", () => {
         browserInstance = null;
         browserInitPromise = null;
@@ -90,8 +88,7 @@ async function closeBrowser() {
 }
 
 /**
- * 임시 디렉토리 생성 및 경로 반환
- * @returns {Promise<string>}
+ * 임시 디렉토리 생성
  */
 async function ensureTempDir() {
   const tempDir = path.resolve(process.cwd(), appConfig.printer.tempPath);
@@ -100,8 +97,7 @@ async function ensureTempDir() {
 }
 
 /**
- * PDF 저장 디렉토리 생성 및 경로 반환
- * @returns {Promise<string>}
+ * PDF 저장 디렉토리 생성
  */
 async function ensurePdfSaveDir() {
   const pdfDir = path.resolve(process.cwd(), appConfig.printer.pdfSavePath);
@@ -110,15 +106,71 @@ async function ensurePdfSaveDir() {
 }
 
 /**
- * React 컴포넌트 HTML을 PDF로 변환
- * @param {string} htmlContent - React 컴포넌트로부터 생성된 HTML 문자열
- * @param {Object} options - PDF 옵션 (페이지 크기, 마진 등)
- * @returns {Promise<Buffer>} - PDF 버퍼
+ * EJS 템플릿을 HTML로 렌더링
+ * @param {string} templateName - 템플릿 이름 (large, medium, small, verysmall)
+ * @param {object} data - 템플릿 데이터
+ * @returns {Promise<string>} 렌더링된 HTML
  */
-async function convertHtmlToPdf(htmlContent, options = {}) {
+async function renderTemplate(templateName, data) {
+  try {
+    const templatePath = path.join(
+      __dirname,
+      "../views",
+      `label-${templateName}.ejs`
+    );
+
+    // 템플릿 파일 존재 확인
+    try {
+      await fs.access(templatePath);
+    } catch (accessError) {
+      if (accessError.code === 'ENOENT') {
+        throw new Error(`템플릿 파일을 찾을 수 없습니다: label-${templateName}.ejs`);
+      }
+      throw accessError;
+    }
+
+    // 템플릿 데이터에 기본값 설정 (안전하게)
+    const templateData = {
+      productName: data.productName || '',
+      manufactureDate: data.manufactureDate || '',
+      expiryDate: data.expiryDate || '',
+      barcodeNumber: data.barcodeNumber || '',
+      barcodeBase64: data.barcodeBase64 || '',
+      storageCondition: data.storageCondition || '냉동',
+      registrationNumber: data.registrationNumber || '',
+      categoryAndForm: data.categoryAndForm || '',
+      ingredients: data.ingredients || '',
+      rawMaterials: data.rawMaterials || '',
+      actualWeight: data.actualWeight || '',
+      isLoadingBarcode: data.isLoadingBarcode || false,
+    };
+
+    // EJS 렌더링
+    const html = await ejs.renderFile(templatePath, templateData, {
+      cache: false,
+      strict: false, // 정의되지 않은 변수는 빈 문자열로 처리
+    });
+
+    return html;
+  } catch (error) {
+    console.error(`템플릿 렌더링 오류 (${templateName}):`, error);
+    if (error.code === 'ENOENT') {
+      throw new Error(`템플릿 파일을 찾을 수 없습니다: label-${templateName}.ejs`);
+    }
+    throw new Error(`템플릿 렌더링 실패: ${error.message}`);
+  }
+}
+
+/**
+ * HTML을 PDF로 변환
+ * @param {string} html - HTML 문자열
+ * @param {object} options - PDF 옵션
+ * @returns {Promise<Buffer>} PDF 버퍼
+ */
+async function convertHtmlToPdf(html, options = {}) {
   const {
-    width = "50mm",
-    height = "30mm",
+    width = "100mm",
+    height = "100mm",
     margin = "0mm",
     printCount = 1,
   } = options;
@@ -159,19 +211,17 @@ async function convertHtmlToPdf(htmlContent, options = {}) {
         <body>
           ${Array(printCount)
             .fill(0)
-            .map(() => `<div class="label-page">${htmlContent}</div>`)
+            .map(() => `<div class="label-page">${html}</div>`)
             .join("")}
         </body>
       </html>
     `;
 
-    // HTML 콘텐츠 설정
     await page.setContent(fullHtml, {
       waitUntil: "networkidle0",
       timeout: 30000,
     });
 
-    // PDF 생성
     const pdfBuffer = await page.pdf({
       width: width,
       height: height,
@@ -195,9 +245,6 @@ async function convertHtmlToPdf(htmlContent, options = {}) {
 
 /**
  * Windows에서 PDF를 프린터로 출력
- * @param {Buffer} pdfBuffer - PDF 버퍼
- * @param {string} printerName - 프린터 이름
- * @returns {Promise<void>}
  */
 async function printPdfOnWindows(pdfBuffer, printerName) {
   const tempDir = await ensureTempDir();
@@ -207,10 +254,8 @@ async function printPdfOnWindows(pdfBuffer, printerName) {
   );
 
   try {
-    // PDF 파일 저장
     await fs.writeFile(tempFilePath, pdfBuffer);
 
-    // PowerShell을 사용하여 PDF 프린트
     const escapedPath = tempFilePath.replace(/'/g, "''");
     const escapedPrinter = printerName.replace(/'/g, "''");
     const command = `powershell -ExecutionPolicy Bypass -Command "Start-Process -FilePath '${escapedPath}' -Verb PrintTo -ArgumentList '${escapedPrinter}' -WindowStyle Hidden"`;
@@ -219,13 +264,11 @@ async function printPdfOnWindows(pdfBuffer, printerName) {
       timeout: 10000,
     });
 
-    // 프린트 작업 완료 대기
     await new Promise((resolve) => setTimeout(resolve, 2000));
   } catch (error) {
-    console.error(`Windows 프린트 실패 (프린터: ${printerName}):`, error);
+    console.error(`Windows 프린트 실패:`, error);
     throw new Error(`프린트 실패: ${error.message}`);
   } finally {
-    // 임시 파일 삭제 (비동기, 에러 무시)
     setTimeout(() => {
       fs.unlink(tempFilePath).catch(() => {});
     }, 5000);
@@ -234,9 +277,6 @@ async function printPdfOnWindows(pdfBuffer, printerName) {
 
 /**
  * Linux/macOS에서 PDF를 프린터로 출력
- * @param {Buffer} pdfBuffer - PDF 버퍼
- * @param {string} printerName - 프린터 이름
- * @returns {Promise<void>}
  */
 async function printPdfOnUnix(pdfBuffer, printerName) {
   const tempDir = await ensureTempDir();
@@ -246,59 +286,27 @@ async function printPdfOnUnix(pdfBuffer, printerName) {
   );
 
   try {
-    // PDF 파일 저장
     await fs.writeFile(tempFilePath, pdfBuffer);
 
-    // Linux/macOS에서 PDF 프린트는 시스템 명령어 사용
-    // lp (CUPS) 또는 lpr 명령어 사용
     const platform = process.platform;
-    let command;
-
-    if (platform === "darwin") {
-      // macOS: lp 명령어 사용
-      command = printerName
+    const command =
+      platform === "darwin"
+        ? printerName
+          ? `lp -d "${printerName}" "${tempFilePath}"`
+          : `lp "${tempFilePath}"`
+        : printerName
         ? `lp -d "${printerName}" "${tempFilePath}"`
         : `lp "${tempFilePath}"`;
-    } else {
-      // Linux: lp 또는 lpr 명령어 사용
-      command = printerName
-        ? `lp -d "${printerName}" "${tempFilePath}"`
-        : `lp "${tempFilePath}"`;
-    }
 
-    try {
-      await execAsync(command, {
-        timeout: 30000,
-      });
-      console.log(`PDF 프린트 명령 실행 완료: ${command}`);
-    } catch (execError) {
-      // lp 명령어 실패 시 lpr 시도
-      if (platform === "linux") {
-        const lprCommand = printerName
-          ? `lpr -P "${printerName}" "${tempFilePath}"`
-          : `lpr "${tempFilePath}"`;
+    await execAsync(command, {
+      timeout: 30000,
+    });
 
-        try {
-          await execAsync(lprCommand, {
-            timeout: 30000,
-          });
-          console.log(`PDF 프린트 명령 실행 완료 (lpr): ${lprCommand}`);
-        } catch (lprError) {
-          console.error(`프린트 명령 실행 실패:`, lprError);
-          throw new Error(`프린트 실패: ${lprError.message}`);
-        }
-      } else {
-        throw new Error(`프린트 실패: ${execError.message}`);
-      }
-    }
-
-    // 프린트 작업 완료 대기
     await new Promise((resolve) => setTimeout(resolve, 2000));
   } catch (error) {
-    console.error(`Unix 프린트 실패 (프린터: ${printerName}):`, error);
+    console.error(`Unix 프린트 실패:`, error);
     throw new Error(`프린트 실패: ${error.message}`);
   } finally {
-    // 임시 파일 삭제 (비동기, 에러 무시)
     setTimeout(() => {
       fs.unlink(tempFilePath).catch(() => {});
     }, 5000);
@@ -307,9 +315,6 @@ async function printPdfOnUnix(pdfBuffer, printerName) {
 
 /**
  * PDF를 파일로 저장 (클라우드 환경)
- * @param {Buffer} pdfBuffer - PDF 버퍼
- * @param {string} filename - 파일명 (옵셔널)
- * @returns {Promise<string>} - 저장된 파일 경로
  */
 async function savePdfToFile(pdfBuffer, filename = null) {
   const pdfDir = await ensurePdfSaveDir();
@@ -325,30 +330,47 @@ async function savePdfToFile(pdfBuffer, filename = null) {
 }
 
 /**
- * React 컴포넌트 HTML을 받아서 PDF로 변환하고 프린트 또는 저장
- * @param {Object} params - 파라미터
- * @param {string} params.htmlContent - React 컴포넌트로부터 생성된 HTML 문자열
- * @param {number} params.printCount - 프린트할 개수
- * @param {Object} params.pdfOptions - PDF 옵션 (width, height, margin 등)
- * @param {string} params.printerName - 프린터 이름 (로컬 환경에서 필수)
- * @returns {Promise<Object>} - 결과 객체
+ * 라벨 프린트 (템플릿 기반)
+ * @param {object} params - 프린트 파라미터
+ * @returns {Promise<object>} 결과 객체
  */
-exports.printLabelFromReact = async ({
-  htmlContent,
-  printCount = 1,
-  pdfOptions = {},
-  printerName,
-}) => {
+exports.printLabel = async (params) => {
   try {
-    if (!htmlContent) {
-      throw new Error("htmlContent가 필요합니다");
+    const {
+      templateType, // large, medium, small, verysmall
+      templateData, // 템플릿에 전달할 데이터
+      printerName,
+      printCount = 1,
+      pdfOptions = {},
+    } = params;
+
+    // 템플릿 타입 검증
+    const validTemplateTypes = ['large', 'medium', 'small', 'verysmall'];
+    if (!templateType || !validTemplateTypes.includes(templateType)) {
+      throw new Error(`유효하지 않은 템플릿 타입입니다: ${templateType}`);
     }
 
-    // HTML을 PDF로 변환
-    const pdfBuffer = await convertHtmlToPdf(htmlContent, {
-      ...pdfOptions,
+    // 템플릿별 기본 PDF 옵션 (템플릿 파일의 @page size와 일치)
+    const defaultPdfOptions = {
+      large: { width: '100mm', height: '100mm', margin: '0mm' },
+      medium: { width: '80mm', height: '60mm', margin: '0mm' },
+      small: { width: '50mm', height: '30mm', margin: '0mm' },
+      verysmall: { width: '26mm', height: '18mm', margin: '0mm' },
+    };
+
+    // PDF 옵션 병합 (사용자 지정 옵션이 있으면 우선 적용)
+    const finalPdfOptions = {
+      width: pdfOptions.width || defaultPdfOptions[templateType].width,
+      height: pdfOptions.height || defaultPdfOptions[templateType].height,
+      margin: pdfOptions.margin || defaultPdfOptions[templateType].margin,
       printCount,
-    });
+    };
+
+    // EJS 템플릿 렌더링
+    const html = await renderTemplate(templateType, templateData);
+
+    // HTML을 PDF로 변환
+    const pdfBuffer = await convertHtmlToPdf(html, finalPdfOptions);
 
     // 환경별 처리
     if (appConfig.printer.type === "cloud" || !appConfig.printer.enabled) {
@@ -388,60 +410,41 @@ exports.printLabelFromReact = async ({
       success: false,
       message: `라벨 프린트 실패: ${error.message}`,
       error: error.message,
-      printerName: printerName || null,
-      printCount,
       mode: appConfig.printer.type === "cloud" ? "cloud" : "local",
     };
   }
 };
 
 /**
- * Windows에서 사용 가능한 프린터 목록 조회
- * @returns {Promise<Array>} - 프린터 목록 배열
+ * 프린터 목록 조회
  */
-async function getWindowsPrinters() {
-  // 클라우드 환경에서는 빈 배열 반환
+exports.getAvailablePrinters = async () => {
   if (appConfig.printer.type === "cloud" || !appConfig.printer.enabled) {
     return [];
   }
 
   try {
-    // printer 패키지를 사용하여 프린터 목록 가져오기
     if (printer) {
       const printers = printer.getPrinters();
-
-      if (!printers || printers.length === 0) {
-        console.warn("프린터 목록이 비어있습니다.");
-        return [];
+      if (printers && printers.length > 0) {
+        return printers
+          .filter((p) => p && p.name && typeof p.name === "string")
+          .map((p) => ({
+            name: String(p.name || "").trim(),
+            status: String(p.status || p.state || "Unknown").trim(),
+            driver: String(p.driver || p.driverName || "").trim(),
+            isDefault: Boolean(p.isDefault || p.default || false),
+          }))
+          .filter((p) => p.name.length > 0);
       }
-
-      // 프린터 정보 매핑
-      const result = printers
-        .filter((p) => p && p.name && typeof p.name === "string")
-        .map((p) => ({
-          name: String(p.name || "").trim(),
-          status: String(p.status || p.state || "Unknown").trim(),
-          driver: String(p.driver || p.driverName || "").trim(),
-          isDefault: Boolean(p.isDefault || p.default || false),
-        }))
-        .filter((p) => p.name.length > 0);
-
-      if (result.length > 0) {
-        console.log(
-          `프린터 목록 조회 성공: ${result.length}개 프린터 발견 - ${result.map((p) => p.name).join(", ")}`
-        );
-      }
-
-      return result;
     }
   } catch (error) {
     console.error("printer 패키지로 프린터 목록 조회 실패:", error.message);
   }
 
-  // PowerShell fallback (Windows 전용)
+  // Windows PowerShell fallback
   if (process.platform === "win32") {
     try {
-      console.log("PowerShell fallback으로 프린터 목록 조회 시도...");
       const command = `powershell -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; try { $printers = Get-Printer -ErrorAction Stop | Select-Object Name, PrinterStatus, DriverName; if ($printers) { $printers | ConvertTo-Json -Depth 10 } else { '[]' } } catch { Write-Error $_.Exception.Message; '[]' }"`;
 
       const { stdout } = await execAsync(command, {
@@ -455,7 +458,7 @@ async function getWindowsPrinters() {
         const printers = JSON.parse(trimmedOutput);
         const printerList = Array.isArray(printers) ? printers : [printers];
 
-        const result = printerList
+        return printerList
           .filter((p) => p && p.Name && typeof p.Name === "string")
           .map((p) => ({
             name: String(p.Name || "").trim(),
@@ -464,108 +467,17 @@ async function getWindowsPrinters() {
             isDefault: false,
           }))
           .filter((p) => p.name.length > 0);
-
-        console.log(`PowerShell fallback 성공: ${result.length}개 프린터 발견`);
-        return result;
-      }
-    } catch (fallbackError) {
-      console.error("PowerShell fallback도 실패:", fallbackError.message);
-    }
-  }
-
-  // Linux/macOS fallback (lpstat 명령어 사용)
-  if (process.platform !== "win32") {
-    try {
-      console.log("lpstat 명령어로 프린터 목록 조회 시도...");
-      // lpstat으로 프린터 목록 조회
-      const command = process.platform === "darwin"
-        ? `lpstat -p 2>/dev/null | awk '{print $2}' | sed 's/:$//' || lpstat -a 2>/dev/null | awk '{print $1}' || echo ""`
-        : `lpstat -p 2>/dev/null | awk '{print $2}' | sed 's/_.*$//' || lpstat -a 2>/dev/null | awk '{print $1}' || echo ""`;
-
-      const { stdout } = await execAsync(command, {
-        timeout: appConfig.printer.listTimeout,
-        encoding: "utf8",
-      });
-
-      if (stdout && stdout.trim()) {
-        const printerNames = stdout
-          .trim()
-          .split("\n")
-          .filter((name) => name && name.trim().length > 0)
-          .map((name) => name.trim())
-          .filter((name, index, self) => self.indexOf(name) === index); // 중복 제거
-
-        if (printerNames.length > 0) {
-          const result = printerNames.map((name) => ({
-            name,
-            status: "Unknown",
-            driver: "",
-            isDefault: false,
-          }));
-
-          console.log(`lpstat으로 프린터 목록 조회 성공: ${result.length}개`);
-          return result;
-        }
       }
     } catch (error) {
-      console.error("lpstat 프린터 목록 조회 실패:", error.message);
-    }
-
-    // printer 패키지 fallback (사용 가능한 경우)
-    if (printer) {
-      try {
-        const printers = printer.getPrinters();
-        if (printers && printers.length > 0) {
-          return printers
-            .filter((p) => p && p.name)
-            .map((p) => ({
-              name: String(p.name || "").trim(),
-              status: String(p.status || p.state || "Unknown").trim(),
-              driver: String(p.driver || p.driverName || "").trim(),
-              isDefault: Boolean(p.isDefault || p.default || false),
-            }))
-            .filter((p) => p.name.length > 0);
-        }
-      } catch (error) {
-        console.error("printer 패키지로 프린터 목록 조회 실패:", error.message);
-      }
+      console.error("PowerShell fallback 실패:", error.message);
     }
   }
 
-  // 빈 배열 반환 (에러 발생 시에도 서버가 중단되지 않도록)
   return [];
-}
-
-/**
- * 사용 가능한 프린터 목록 조회
- * @returns {Promise<Array>} - 프린터 목록 배열
- */
-exports.getAvailablePrinters = async () => {
-  try {
-    return await getWindowsPrinters();
-  } catch (error) {
-    console.error("프린터 목록 조회 실패:", error);
-    return [];
-  }
 };
 
 /**
- * React 컴포넌트 HTML을 PDF로 변환만 하고 프린트하지 않음 (테스트용)
- * @param {Object} params - 파라미터
- * @param {string} params.htmlContent - React 컴포넌트로부터 생성된 HTML 문자열
- * @param {number} params.printCount - 생성할 개수
- * @param {Object} params.pdfOptions - PDF 옵션
- * @returns {Promise<Buffer>} - PDF 버퍼
- */
-exports.convertLabelToPdf = async ({ htmlContent, printCount = 1, pdfOptions = {} }) => {
-  return await convertHtmlToPdf(htmlContent, {
-    ...pdfOptions,
-    printCount,
-  });
-};
-
-/**
- * 브라우저 인스턴스 종료 (서버 종료 시 호출)
+ * 브라우저 인스턴스 종료
  */
 exports.closeBrowser = closeBrowser;
 
@@ -579,3 +491,4 @@ process.on("SIGTERM", async () => {
   await closeBrowser();
   process.exit(0);
 });
+
