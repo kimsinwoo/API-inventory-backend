@@ -323,7 +323,7 @@ const validatePrintLabel = validate({
   body: z
     .object({
       htmlContent: z.string().min(1, "htmlContent가 필요합니다"),
-      printerName: z.string().min(1, "printerName이 필요합니다"),
+      printerName: z.string().min(1).optional(), // 클라우드 환경에서는 선택사항
       printCount: z
         .number()
         .int()
@@ -372,7 +372,7 @@ const validatePrintSavedLabel = validate({
       .int()
       .positive("labelId는 1 이상이어야 합니다")
       .or(z.string().regex(/^\d+$/).transform(Number)),
-    printerName: z.string().min(1, "printerName이 필요합니다"),
+    printerName: z.string().min(1).optional(), // 클라우드 환경에서는 선택사항
     manufactureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "제조일자는 YYYY-MM-DD 형식이어야 합니다"),
     expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "유통기한은 YYYY-MM-DD 형식이어야 합니다"),
     printCount: z

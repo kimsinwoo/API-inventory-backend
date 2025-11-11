@@ -1,10 +1,16 @@
 /**
  * 바코드 기반 물류 작업 컨트롤러
+ * - 라벨 생성, 조회, 프린트 기능 제공
+ * - 환경별 프린터 처리 (로컬/클라우드)
  */
 
 const barcodeService = require("../services/barcodeService");
-const asyncHandler = require("../middleware/asyncHandler");
+const labelService = require("../services/labelService");
+const labelPrintService = require("../services/labelPrintService");
 const labelTemplateService = require("../services/labelTemplateService");
+const asyncHandler = require("../middleware/asyncHandler");
+const db = require("../../models");
+const { Items, Inventories } = db;
 
 /* ===============================
  * POST /api/barcode/generate-label
@@ -144,17 +150,15 @@ exports.getBarcodeHistory = asyncHandler(async (req, res) => {
  * 사용 가능한 프린터 목록 조회
  * =============================== */
 exports.getPrinters = asyncHandler(async (req, res) => {
-  const labelPrintService = require("../services/labelPrintService");
-
   try {
     const printers = await labelPrintService.getAvailablePrinters();
 
     if (!printers || printers.length === 0) {
       return res.status(200).json({
         ok: true,
-        message: "프린터가 발견되지 않았습니다. Windows 프린터 설정을 확인해주세요.",
+        message: "프린터가 발견되지 않았습니다.",
         data: [],
-        warning: "프린터가 설치되어 있지 않거나 접근할 수 없습니다.",
+        warning: "프린터가 설치되어 있지 않거나 클라우드 환경일 수 있습니다.",
       });
     }
 
@@ -164,7 +168,7 @@ exports.getPrinters = asyncHandler(async (req, res) => {
       data: printers,
     });
   } catch (error) {
-    console.error("프린터 목록 조회 컨트롤러 에러:", error);
+    console.error("프린터 목록 조회 에러:", error);
     res.status(500).json({
       ok: false,
       message: "프린터 목록 조회 중 오류가 발생했습니다",
@@ -179,9 +183,6 @@ exports.getPrinters = asyncHandler(async (req, res) => {
  * Finished 카테고리 품목만 조회 (라벨용)
  * =============================== */
 exports.getFinishedItems = asyncHandler(async (req, res) => {
-  const db = require("../../models");
-  const { Items } = db;
-
   const finishedItems = await Items.findAll({
     where: {
       category: "Finished",
@@ -208,31 +209,6 @@ exports.getFinishedItems = asyncHandler(async (req, res) => {
  * =============================== */
 exports.createLabel = asyncHandler(async (req, res) => {
   const { itemId, inventoryId, barcode, quantity, unit } = req.body;
-
-  if (!itemId) {
-    return res.status(400).json({
-      ok: false,
-      message: "itemId가 필요합니다",
-    });
-  }
-
-  if (!inventoryId) {
-    return res.status(400).json({
-      ok: false,
-      message: "inventoryId가 필요합니다",
-    });
-  }
-
-  if (!barcode) {
-    return res.status(400).json({
-      ok: false,
-      message: "barcode가 필요합니다",
-    });
-  }
-
-  const db = require("../../models");
-  const { Items, Inventories } = db;
-  const labelService = require("../services/labelService");
 
   // 품목 조회 및 Finished 카테고리 확인
   const item = await Items.findByPk(itemId);
@@ -294,8 +270,6 @@ exports.createLabel = asyncHandler(async (req, res) => {
  * =============================== */
 exports.getLabelsByBarcode = asyncHandler(async (req, res) => {
   const { barcode } = req.params;
-
-  const labelService = require("../services/labelService");
   const labels = await labelService.getLabelsByBarcode(barcode);
 
   res.status(200).json({
@@ -311,8 +285,6 @@ exports.getLabelsByBarcode = asyncHandler(async (req, res) => {
  * =============================== */
 exports.getLabelsByInventoryId = asyncHandler(async (req, res) => {
   const { inventoryId } = req.params;
-
-  const labelService = require("../services/labelService");
   const labels = await labelService.getLabelsByInventoryId(Number(inventoryId));
 
   res.status(200).json({
@@ -328,8 +300,6 @@ exports.getLabelsByInventoryId = asyncHandler(async (req, res) => {
  * =============================== */
 exports.getLabelById = asyncHandler(async (req, res) => {
   const { labelId } = req.params;
-
-  const labelService = require("../services/labelService");
   const label = await labelService.getLabelById(Number(labelId));
 
   if (!label) {
@@ -352,9 +322,10 @@ exports.getLabelById = asyncHandler(async (req, res) => {
  * =============================== */
 exports.getAllLabels = asyncHandler(async (req, res) => {
   const { page = 1, limit = 50 } = req.query || {};
-
-  const labelService = require("../services/labelService");
-  const { rows, count } = await labelService.getAllLabels({ page: Number(page), limit: Number(limit) });
+  const { rows, count } = await labelService.getAllLabels({
+    page: Number(page),
+    limit: Number(limit),
+  });
 
   res.status(200).json({
     ok: true,
@@ -378,8 +349,9 @@ exports.getLabelTemplateByRegistrationNumber = asyncHandler(async (req, res) => 
     });
   }
 
-  const labelService = require("../services/labelService");
-  const labelTemplate = await labelService.getLabelTemplateByRegistrationNumber(registrationNumber);
+  const labelTemplate = await labelService.getLabelTemplateByRegistrationNumber(
+    registrationNumber
+  );
 
   if (!labelTemplate) {
     return res.status(404).json({
@@ -400,113 +372,79 @@ exports.getLabelTemplateByRegistrationNumber = asyncHandler(async (req, res) => 
  * React 컴포넌트를 받아서 PDF로 변환 후 바로 프린트
  * =============================== */
 exports.printLabelFromReact = asyncHandler(async (req, res) => {
+  const {
+    htmlContent,
+    printCount = 1,
+    pdfOptions = {},
+    printerName,
+    labelType,
+    productName,
+    storageCondition,
+    registrationNumber,
+    categoryAndForm,
+    ingredients,
+    rawMaterials,
+    actualWeight,
+    itemId,
+  } = req.body;
+
+  // 템플릿 기록 생성 (실패해도 계속 진행)
+  let templateRecord = null;
   try {
-    const {
-      htmlContent,
-      printCount = 1,
-      pdfOptions = {},
-      printerName,
+    templateRecord = await labelTemplateService.createTemplate({
+      itemId: itemId ? Number(itemId) : null,
+      itemName: productName,
       labelType,
-      productName,
       storageCondition,
       registrationNumber,
       categoryAndForm,
       ingredients,
       rawMaterials,
       actualWeight,
-      itemId,
-    } = req.body;
-
-    if (!htmlContent) {
-      return res.status(400).json({
-        ok: false,
-        message: "htmlContent가 필요합니다",
-      });
-    }
-
-    if (!printerName) {
-      return res.status(400).json({
-        ok: false,
-        message: "printerName이 필요합니다",
-      });
-    }
-
-    if (!printCount || printCount < 1) {
-      return res.status(400).json({
-        ok: false,
-        message: "printCount는 1 이상이어야 합니다",
-      });
-    }
-
-    const labelPrintService = require("../services/labelPrintService");
-
-    let templateRecord = null;
-
-    try {
-      templateRecord = await labelTemplateService.createTemplate({
-        itemId: itemId ? Number(itemId) : null,
-        itemName: productName,
-        labelType,
-        storageCondition,
-        registrationNumber,
-        categoryAndForm,
-        ingredients,
-        rawMaterials,
-        actualWeight,
-        htmlContent,
-        printerName,
-        printCount: Number(printCount),
-        printStatus: "PENDING",
-      });
-    } catch (templateError) {
-      console.error("라벨 템플릿 저장 실패:", templateError);
-    }
-
-    const result = await labelPrintService.printLabelFromReact({
       htmlContent,
+      printerName: printerName || null,
       printCount: Number(printCount),
-      pdfOptions,
-      printerName,
+      printStatus: "PENDING",
     });
-
-    await labelTemplateService.markResult(templateRecord?.id, {
-      success: result.success,
-      errorMessage: result.success ? null : result.error,
-    });
-
-    if (result.success) {
-      return res.status(200).json({
-      ok: true,
-      message: result.message,
-      data: {
-        templateId: templateRecord?.id ?? null,
-        printCount: result.printCount,
-        printerName: result.printerName,
-        printedAt: new Date().toISOString(),
-      },
-      });
-    }
-
-    return res.status(200).json({
-      ok: false,
-      message: result.message,
-      data: {
-      templateId: templateRecord?.id ?? null,
-      printCount: result.printCount ?? Number(printCount),
-      printerName,
-      error: result.error,
-      },
-    });
-  } catch (error) {
-    console.error("printLabelFromReact controller error:", error);
-    return res.status(200).json({
-      ok: false,
-      message: `라벨 프린트 처리 중 오류가 발생했습니다: ${error.message}`,
-      data: {
-        error: error.message,
-      },
-    });
+  } catch (templateError) {
+    console.error("라벨 템플릿 저장 실패 (계속 진행):", templateError.message);
   }
+
+  // 프린트 실행
+  const result = await labelPrintService.printLabelFromReact({
+    htmlContent,
+    printCount: Number(printCount),
+    pdfOptions,
+    printerName: printerName || undefined, // 클라우드 환경에서는 undefined 가능
+  });
+
+  // 템플릿 기록 업데이트
+  if (templateRecord?.id) {
+    try {
+      await labelTemplateService.markResult(templateRecord.id, {
+        success: result.success,
+        errorMessage: result.success ? null : result.error,
+      });
+    } catch (markError) {
+      console.error("템플릿 결과 업데이트 실패:", markError.message);
+    }
+  }
+
+  // 응답 반환
+  const statusCode = result.success ? 200 : 500;
+  res.status(statusCode).json({
+    ok: result.success,
+    message: result.message,
+    data: {
+      templateId: templateRecord?.id ?? null,
+      printCount: result.printCount,
+      printerName: result.printerName || null,
+      filePath: result.filePath || null,
+      mode: result.mode || "unknown",
+      printedAt: result.success ? new Date().toISOString() : null,
+      error: result.error || null,
+    },
+  });
 });
 
 /* ===============================
@@ -514,136 +452,91 @@ exports.printLabelFromReact = asyncHandler(async (req, res) => {
  * 저장된 라벨을 HTML로 변환 후 PDF로 변환하여 프린트
  * =============================== */
 exports.printSavedLabel = asyncHandler(async (req, res) => {
-  try {
-    const { labelId, printCount = 1, pdfOptions = {}, printerName, manufactureDate, expiryDate } = req.body;
+  const {
+    labelId,
+    printCount = 1,
+    pdfOptions = {},
+    printerName,
+    manufactureDate,
+    expiryDate,
+  } = req.body;
 
-    if (!labelId) {
-      return res.status(400).json({
-        ok: false,
-        message: "labelId가 필요합니다",
-      });
-    }
-
-    if (!printerName) {
-      return res.status(400).json({
-        ok: false,
-        message: "printerName이 필요합니다",
-      });
-    }
-
-    if (!manufactureDate) {
-      return res.status(400).json({
-        ok: false,
-        message: "manufactureDate가 필요합니다",
-      });
-    }
-
-    if (!expiryDate) {
-      return res.status(400).json({
-        ok: false,
-        message: "expiryDate가 필요합니다",
-      });
-    }
-
-    if (!printCount || printCount < 1) {
-      return res.status(400).json({
-        ok: false,
-        message: "printCount는 1 이상이어야 합니다",
-      });
-    }
-
-    const labelService = require("../services/labelService");
-    const labelPrintService = require("../services/labelPrintService");
-
-    // 라벨 조회
-    const label = await labelService.getLabelById(Number(labelId));
-    if (!label) {
-      return res.status(404).json({
-        ok: false,
-        message: "라벨을 찾을 수 없습니다",
-      });
-    }
-
-    // 라벨 HTML 생성 (제조일자, 유통기한 포함)
-    const labelHtml = await labelService.generateLabelFromRecord(label, {
-      manufactureDate,
-      expiryDate,
-    });
-
-    // PDF로 변환 후 프린트
-    let templateRecord = null;
-
-    try {
-      templateRecord = await labelTemplateService.createTemplate({
-        itemId: label.item_id ?? null,
-        itemName: label.product_name ?? null,
-        labelType: label.label_size ?? null,
-        storageCondition: label.label_data?.storageCondition ?? null,
-        registrationNumber: label.registration_code ?? null,
-        categoryAndForm: label.label_data?.categoryAndForm ?? null,
-        ingredients: label.label_data?.ingredients ?? null,
-        rawMaterials: label.label_data?.rawMaterials ?? null,
-        actualWeight: label.label_data?.actualWeight ?? null,
-        htmlContent: labelHtml.html,
-        printerName,
-        printCount: Number(printCount),
-        printStatus: "PENDING",
-      });
-    } catch (templateError) {
-      console.error("저장된 라벨 템플릿 기록 실패:", templateError);
-    }
-
-    const result = await labelPrintService.printLabelFromReact({
-      htmlContent: labelHtml.html,
-      printCount: Number(printCount),
-      pdfOptions: {
-        width: pdfOptions.width || "50mm",
-        height: pdfOptions.height || "30mm",
-        margin: pdfOptions.margin || "0mm",
-      },
-      printerName,
-    });
-
-    await labelTemplateService.markResult(templateRecord?.id, {
-      success: result.success,
-      errorMessage: result.success ? null : result.error,
-    });
-
-    if (result.success) {
-      return res.status(200).json({
-      ok: true,
-      message: result.message,
-      data: {
-        labelId: label.id,
-        barcode: label.barcode,
-        templateId: templateRecord?.id ?? null,
-        printCount: result.printCount,
-        printerName: result.printerName,
-        printedAt: new Date().toISOString(),
-      },
-      });
-    }
-
-    return res.status(200).json({
+  // 라벨 조회
+  const label = await labelService.getLabelById(Number(labelId));
+  if (!label) {
+    return res.status(404).json({
       ok: false,
-      message: result.message,
-      data: {
-        labelId: label.id,
-        barcode: label.barcode,
-      templateId: templateRecord?.id ?? null,
-        printCount: result.printCount ?? Number(printCount),
-        printerName,
-        error: result.error,
-      },
-    });
-  } catch (error) {
-    console.error("printSavedLabel controller error:", error);
-    return res.status(200).json({
-      ok: false,
-      message: `라벨 프린트 처리 중 오류가 발생했습니다: ${error.message}`,
-      data: {
-        error: error.message,
-      },
+      message: "라벨을 찾을 수 없습니다",
     });
   }
+
+  // 라벨 HTML 생성 (제조일자, 유통기한 포함)
+  const labelHtml = await labelService.generateLabelFromRecord(label, {
+    manufactureDate,
+    expiryDate,
+  });
+
+  // 템플릿 기록 생성 (실패해도 계속 진행)
+  let templateRecord = null;
+  try {
+    templateRecord = await labelTemplateService.createTemplate({
+      itemId: label.item_id ?? null,
+      itemName: label.product_name ?? null,
+      labelType: label.label_size ?? null,
+      storageCondition: label.label_data?.storageCondition ?? null,
+      registrationNumber: label.registration_code ?? null,
+      categoryAndForm: label.label_data?.categoryAndForm ?? null,
+      ingredients: label.label_data?.ingredients ?? null,
+      rawMaterials: label.label_data?.rawMaterials ?? null,
+      actualWeight: label.label_data?.actualWeight ?? null,
+      htmlContent: labelHtml.html,
+      printerName: printerName || null,
+      printCount: Number(printCount),
+      printStatus: "PENDING",
+    });
+  } catch (templateError) {
+    console.error("저장된 라벨 템플릿 기록 실패 (계속 진행):", templateError.message);
+  }
+
+  // PDF로 변환 후 프린트
+  const result = await labelPrintService.printLabelFromReact({
+    htmlContent: labelHtml.html,
+    printCount: Number(printCount),
+    pdfOptions: {
+      width: pdfOptions.width || "50mm",
+      height: pdfOptions.height || "30mm",
+      margin: pdfOptions.margin || "0mm",
+    },
+    printerName: printerName || undefined,
+  });
+
+  // 템플릿 기록 업데이트
+  if (templateRecord?.id) {
+    try {
+      await labelTemplateService.markResult(templateRecord.id, {
+        success: result.success,
+        errorMessage: result.success ? null : result.error,
+      });
+    } catch (markError) {
+      console.error("템플릿 결과 업데이트 실패:", markError.message);
+    }
+  }
+
+  // 응답 반환
+  const statusCode = result.success ? 200 : 500;
+  res.status(statusCode).json({
+    ok: result.success,
+    message: result.message,
+    data: {
+      labelId: label.id,
+      barcode: label.barcode,
+      templateId: templateRecord?.id ?? null,
+      printCount: result.printCount,
+      printerName: result.printerName || null,
+      filePath: result.filePath || null,
+      mode: result.mode || "unknown",
+      printedAt: result.success ? new Date().toISOString() : null,
+      error: result.error || null,
+    },
+  });
 });
