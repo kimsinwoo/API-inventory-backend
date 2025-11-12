@@ -438,9 +438,7 @@ exports.completePlannedReceive = async (id, payload, userId) => {
     throw new Error("입고 예정 항목만 입고 처리할 수 있습니다");
   }
 
-  if (planned.status !== "APPROVED" && planned.status !== "PENDING") {
-    throw new Error("승인된 항목만 입고 처리할 수 있습니다");
-  }
+  // 상태 검증 완전 제거: 모든 상태에서 완료 처리 가능 (CANCELLED, COMPLETED 포함)
 
   // 실제 입고 처리 (barcode가 있으면 그대로 사용, 없으면 자동 생성) ✅
   const receivePayload = {
@@ -491,9 +489,7 @@ exports.completePlannedIssue = async (id, payload, userId) => {
     throw new Error("출고 예정 항목만 출고 처리할 수 있습니다");
   }
 
-  if (planned.status !== "APPROVED" && planned.status !== "PENDING") {
-    throw new Error("승인된 항목만 출고 처리할 수 있습니다");
-  }
+  // 상태 검증 완전 제거: 모든 상태에서 완료 처리 가능 (CANCELLED, COMPLETED 포함)
 
   // 실제 출고 처리
   const issuePayload = {

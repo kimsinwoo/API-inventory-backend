@@ -84,6 +84,7 @@ async function generateBarcodeImage(barcode) {
       textxalign: 'center',
     });
 
+    console.log(png.toString('base64'));
     return png.toString('base64');
   } catch (error) {
     throw new Error(`바코드 이미지 생성 실패: ${error.message}`);

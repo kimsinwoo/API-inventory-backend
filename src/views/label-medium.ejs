@@ -1,79 +1,52 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Large 라벨</title>
-    <style>
-      @page { size: 100mm 100mm; margin: 0; }
-      body {
-        margin: 0; padding: 0; font-family: 'Nanum Gothic', sans-serif; height: 100%;
-      }
-      .label-content { width: 100%; height: 100%; }
-      .label-large {
-        width: 100%; height: 100%; padding: 10px 14px; box-sizing: border-box;
-        font-size: 9pt; line-height: 1.4;
-        display: flex; flex-direction: column; justify-content: space-between;
-      }
-      .large-top { display: flex; justify-content: space-between; align-items: flex-start; }
-      .large-title { font-size: 16pt; font-weight: bold; }
-      .frozen-badge {
-        border: 1.5px solid #000; border-radius: 6px; padding: 4px;
-        width: 60px; height: 60px; text-align: center; font-size: 7pt;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-      }
-      .frozen-badge svg { width: 28px; height: 28px; margin-bottom: 2px; }
-      .large-info p { margin: 2px 0; text-align: left; }
-      .large-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
-      .barcode-box img { width: 140px; height: auto; }
-      .date-box { text-align: left; font-size: 10pt; }
-      .microwave-box { text-align: center; font-size: 8pt; }
-      .microwave-box svg { display: block; width: 42px; height: 28px; margin: 0 auto 2px auto; }
-    </style>
-  </head>
-  <body>
-    <div class="label-content">
-      <div class="label-large">
-        <div class="large-top">
-          <div class="large-title"><%= productName %></div>
-          <div class="frozen-badge">
-            <% if (storageCondition === '냉동') { %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M32 8v48M8 32h48M16 16l32 32M48 16L16 48"/>
-              </svg>
-            <% } %>
-            <%= storageCondition || '냉동' %>식품
-          </div>
-        </div>
-
-        <div class="large-info">
-          <p>등록번호: <%= registrationNumber %> / 제품명: <%= productName %></p>
-          <p>종류 및 형태: <%= categoryAndForm %></p>
-          <p>성분량: <%= ingredients %></p>
-          <p>원료의 명칭: <%= rawMaterials %></p>
-          <p>실제중량: <%= actualWeight %></p>
-          <p>주의사항: 반려동물 이외에는 급여하지 마십시오.</p>
-        </div>
-
-        <div class="large-bottom">
-          <div class="barcode-box">
-            <% if (barcodeBase64) { %>
-              <img src="data:image/png;base64,<%= barcodeBase64 %>" alt="Barcode" />
-            <% } %>
-            <div><%= barcodeNumber %></div>
-          </div>
-          <div class="date-box">
-            <p>제조일자: <%= manufactureDate %></p>
-            <p>유통기한: <%= expiryDate %></p>
-          </div>
-          <div class="microwave-box">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 48" fill="none" stroke="#000" stroke-width="2">
-              <rect x="2" y="8" width="52" height="32" rx="2"/>
-              <circle cx="58" cy="16" r="2"/><circle cx="58" cy="24" r="2"/><circle cx="58" cy="32" r="2"/>
-            </svg>
-            30초~2분
-          </div>
-        </div>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @page { size: 80mm 60mm; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .label { width: 80mm; height: 60mm; padding: 2.5mm; border: 0.2mm solid #ccc; display:flex; flex-direction:column; }
+    .title { font-size: 14pt; font-weight: 700; color: #111; margin-bottom: 2mm; }
+    .grid { font-size: 7pt; line-height:1.4; color:#111; margin-bottom: 2mm; }
+    .foot { margin-top:auto; display:flex; justify-content:space-between; align-items:flex-end; gap: 2mm; }
+    .barcode img { max-width:100%; height:auto; }
+    .meta { font-size: 8pt; text-align:right; }
+    .mw { text-align:center; }
+    .mw small { display:block; font-size:7pt; font-weight:700; margin-top:1mm; }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="title"><%= productName || '제품명' %></div>
+    <div class="grid">
+      <% if (registrationNumber) { %>
+        <p><b>등록번호:</b> <%= registrationNumber %> / <b>제품명:</b> <%= productName || '제품명' %></p>
+      <% } %>
+      <% if (categoryAndForm) { %><p><b>종류 및 형태:</b> <%= categoryAndForm %></p><% } %>
+      <% if (ingredients) { %><p><b>성분량:</b> <%= ingredients %></p><% } %>
+    </div>
+    <div class="foot">
+      <div class="barcode">
+        <% if (barcodeBase64) { %>
+          <img src="data:image/png;base64,<%= barcodeBase64 %>" alt="barcode"  width="100mm"/>
+          <div style="font-size:7pt;color:#333; text-align:center;"> <%= barcodeNumber %> </div>
+        <% } %>
+      </div>
+      <div class="meta">
+        <% if (manufactureDate) { %><p><b>제조일자:</b> <%= manufactureDate %></p><% } %>
+        <p><b>유통기한:</b> <%= expiryDate || '-' %></p>
+      </div>
+      <div class="mw">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="5" width="18" height="14" rx="2" stroke="#0F172A" stroke-width="2"/>
+          <rect x="6" y="9" width="9" height="6" rx="1" stroke="#0F172A" stroke-width="2"/>
+          <circle cx="18" cy="12" r="1.2" fill="#0F172A"/>
+          <circle cx="18" cy="15" r="1.2" fill="#0F172A"/>
+        </svg>
+        <small>30초~2분</small>
       </div>
     </div>
-  </body>
+  </div>
+</body>
 </html>

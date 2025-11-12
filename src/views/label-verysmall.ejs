@@ -1,33 +1,24 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Very Small 라벨</title>
-    <style>
-      @page { size: 26mm 18mm; margin: 0; }
-      body { margin: 0; padding: 0; font-family: 'Nanum Gothic', sans-serif; }
-      .label-verysmall {
-        width: 100%; height: 100%; border: 1px solid #aaa;
-        display: flex; justify-content: center; align-items: center; gap: 4px;
-        box-sizing: border-box;
-      }
-      .product-name {
-        font-size: 6pt; font-weight: bold; transform: rotate(-90deg); white-space: nowrap;
-      }
-      .barcode {
-        max-width: 20mm; height: auto;
-      }
-      .loading { font-size: 5pt; color: gray; }
-    </style>
-  </head>
-  <body>
-    <div class="label-verysmall">
-      <div class="product-name"><%= productName %></div>
-      <% if (isLoadingBarcode) { %>
-        <div class="loading">로딩 중...</div>
-      <% } else if (barcodeBase64) { %>
-        <img src="data:image/png;base64,<%= barcodeBase64 %>" class="barcode" alt="Barcode" />
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @page { size: 28mm 16mm; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .label { width: 28mm; height: 16mm; padding: 1mm; border: 0.2mm solid #ccc; display:flex; align-items:center; justify-content:center; gap: 1.5mm; overflow:hidden; }
+    .rotate { transform: rotate(-90deg); font-size: 6pt; font-weight: 700; white-space: nowrap; margin-left: -15mm; }
+    .barcode img { height: auto; margin-left: -5mm; }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="rotate"><%= productName || '제품명' %></div>
+    <div class="barcode">
+      <% if (barcodeBase64) { %>
+        <img src="data:image/png;base64,<%= barcodeBase64 %>" alt="barcode" width="40mm"/>
       <% } %>
     </div>
-  </body>
+  </div>
+</body>
 </html>

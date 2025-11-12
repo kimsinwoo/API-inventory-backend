@@ -129,3 +129,4 @@ Error: Column 'html_content' cannot be null
 2. `migrations/20251106170000-create-label-templates.js` - `html_content` 필드의 `allowNull: true`로 수정
 3. `migrations/20251106180000-update-label-templates-html-content-nullable.js` - 새 마이그레이션 파일 (기존 DB 업데이트용)
 
+

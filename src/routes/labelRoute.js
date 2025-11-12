@@ -35,7 +35,7 @@ router.get("/printers", labelController.getPrinters);
 
 /**
  * 라벨 프린트
- * POST /api/label/print
+ *  
  */
 const validatePrintLabel = validate({
   body: z.object({

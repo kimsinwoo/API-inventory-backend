@@ -9,7 +9,7 @@ const labelPrintService = require("../services/labelPrintService");
 const labelTemplateService = require("../services/labelTemplateService");
 const { generateLabelBarcode, generateBarcodeImage } = require("../utils/labelBarcodeGenerator");
 const db = require("../../models");
-const { Items } = db;
+const { Items, LabelTemplate } = db;
 const asyncHandler = require("../middleware/asyncHandler");
 
 /**
@@ -58,8 +58,6 @@ exports.printLabel = asyncHandler(async (req, res) => {
       expiryDate, // YYYY-MM-DD
       printerName,
       printCount = 1,
-      pdfOptions = {},
-      // 템플릿별 추가 데이터
       productName,
       storageCondition,
       registrationNumber,
@@ -67,7 +65,6 @@ exports.printLabel = asyncHandler(async (req, res) => {
       ingredients,
       rawMaterials,
       actualWeight,
-      // 템플릿 저장 여부
       saveTemplate = false,
     } = req.body;
 
@@ -157,6 +154,8 @@ exports.printLabel = asyncHandler(async (req, res) => {
       });
     }
 
+    const templateDbData = await LabelTemplate.findOne({ where: { registration_number: registrationNumber } });
+    console.log(templateDbData);
     // 템플릿 데이터 준비 (모든 템플릿에서 사용할 수 있도록 모든 변수 포함)
     const templateData = {
       productName: productName || item.name || '',
@@ -166,10 +165,10 @@ exports.printLabel = asyncHandler(async (req, res) => {
       barcodeBase64,
       storageCondition: storageCondition || '냉동',
       registrationNumber: registrationNumber || item.code || '',
-      categoryAndForm: categoryAndForm || '',
-      ingredients: ingredients || '',
-      rawMaterials: rawMaterials || '',
-      actualWeight: actualWeight || '',
+      categoryAndForm: templateDbData.category_and_form,
+      ingredients: templateDbData.ingredients,
+      rawMaterials: templateDbData.raw_materials,
+      actualWeight: templateDbData.actual_weight,
       isLoadingBarcode: false, // verysmall 템플릿용
     };
 
@@ -183,12 +182,12 @@ exports.printLabel = asyncHandler(async (req, res) => {
           itemId: itemIdNum,
           itemName: item.name,
           labelType: templateType,
-          storageCondition: templateData.storageCondition,
-          registrationNumber: templateData.registrationNumber,
-          categoryAndForm: templateData.categoryAndForm,
-          ingredients: templateData.ingredients,
-          rawMaterials: templateData.rawMaterials,
-          actualWeight: templateData.actualWeight,
+          storageCondition: storageCondition,
+          registrationNumber: registrationNumber,
+          categoryAndForm: categoryAndForm,
+          ingredients: ingredients,
+          rawMaterials: rawMaterials,
+          actualWeight: actualWeight,
           htmlContent: null, // 데이터만 저장
           printerName: printerName || null,
           printCount: Number(printCount) || 1,
@@ -205,7 +204,6 @@ exports.printLabel = asyncHandler(async (req, res) => {
       templateData,
       printerName: printerName || undefined,
       printCount: Number(printCount),
-      pdfOptions,
     });
 
     // 템플릿 결과 업데이트

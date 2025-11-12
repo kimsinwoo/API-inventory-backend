@@ -1,34 +1,64 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Medium 라벨</title>
-    <style>
-      @page { size: 80mm 60mm; margin: 0; }
-      body { margin: 0; padding: 0; font-family: 'Nanum Gothic', sans-serif; }
-      .label-medium {
-        width: 100%; height: 100%; padding: 8px 10px; box-sizing: border-box;
-        font-size: 8pt; display: flex; flex-direction: column; justify-content: space-between;
-      }
-      .medium-title { font-size: 13pt; font-weight: bold; }
-      .medium-info p { margin: 2px 0; text-align: left; }
-      .medium-bottom { display: flex; justify-content: flex-end; align-items: flex-end; }
-    </style>
-  </head>
-  <body>
-    <div class="label-medium">
-      <div class="medium-title"><%= productName %></div>
-      <div class="medium-info">
-        <p>등록번호: <%= registrationNumber %> / 제품명: <%= productName %></p>
-        <p>종류 및 형태: <%= categoryAndForm %></p>
-        <p>성분량: <%= ingredients %></p>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @page { size: 100mm 100mm; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .label { width: 100mm; height: 100mm; padding: 3mm; border: 0.2mm solid #ccc; display:flex; flex-direction:column; justify-content:space-between; }
+    .row { display:flex; justify-content:space-between; align-items:flex-start; }
+    .title { font-size: 18pt; font-weight: 700; color: #111; }
+    .badge { border: 0.4mm solid #222; border-radius: 3mm; width: 16mm; height: 16mm; display:flex; align-items:center; justify-content:center; font-size: 6pt; font-weight:700; text-align:center; padding: 1mm; }
+    .grid { font-size: 7pt; line-height: 1.4; color: #111; }
+    .warn { color: #b91c1c; font-weight: 700; }
+    .foot { display:flex; justify-content:space-between; align-items:flex-end; gap: 2mm; }
+    .barcode { text-align:center; }
+    .barcode img { max-width: 100%; height: auto; }
+    .meta { font-size: 8pt; text-align:right; }
+    .mw { text-align:center; }
+    .mw small { display:block; font-size:7pt; font-weight:700; margin-top:1mm; }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="row">
+      <div class="title"><%= productName || '제품명' %></div>
+      <div class="badge"><%= (storageCondition || '냉동') %>식품</div>
+    </div>
+
+    <div class="grid">
+      <% if (registrationNumber) { %>
+      <p><b>등록번호:</b> <%= registrationNumber %> / <b>제품명:</b> <%= productName || '제품명' %></p>
+      <% } %>
+      <p><b>종류 및 형태:</b> <%= categoryAndForm %></p>
+      <p><b>성분량:</b> <%= ingredients %></p>
+      <p><b>원료의 명칭:</b> <%= rawMaterials %></p>
+      <p><b>실제중량:</b> <%= actualWeight %></p>
+      <p class="warn">⚠ 반려동물 이외에는 급여하지 마십시오.</p>
+    </div>
+
+    <div class="foot">
+      <div class="barcode">
+        <% if (barcodeBase64) { %>
+          <img src="data:image/png;base64,<%= barcodeBase64 %>" alt="barcode" width="150mm"/>
+        <% } %>
       </div>
-      <div class="medium-bottom">
-        <div class="text-right">
-          <p>제조일자: <%= manufactureDate %></p>
-          <p>유통기한: <%= expiryDate %></p>
-        </div>
+      <div class="meta">
+        <% if (manufactureDate) { %><p><b>제조일자:</b> <%= manufactureDate %></p><% } %>
+        <p><b>유통기한:</b> <%= expiryDate || '-' %></p>
+      </div>
+      <div class="mw">
+        <!-- microwave icon (inline svg) -->
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="5" width="18" height="14" rx="2" stroke="#0F172A" stroke-width="2"/>
+          <rect x="6" y="9" width="9" height="6" rx="1" stroke="#0F172A" stroke-width="2"/>
+          <circle cx="18" cy="12" r="1.2" fill="#0F172A"/>
+          <circle cx="18" cy="15" r="1.2" fill="#0F172A"/>
+        </svg>
+        <small>30초~2분</small>
       </div>
     </div>
-  </body>
+  </div>
+</body>
 </html>
