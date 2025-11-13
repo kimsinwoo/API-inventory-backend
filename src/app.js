@@ -28,7 +28,7 @@ app.set("db", db);
 // CORS 설정 (환경별)
 app.use(
   cors({
-    origin: appConfig.server.corsOrigin,
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.0.35:3000"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],

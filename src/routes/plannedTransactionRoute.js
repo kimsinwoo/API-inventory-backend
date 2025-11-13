@@ -78,7 +78,6 @@ router.post(
   "/:id/reject",
   // authenticate, // 임시로 인증 비활성화 (개발용)
   vr.validatePlannedId,
-  vr.validateRejectPlanned,
   ctrl.reject
 );
 

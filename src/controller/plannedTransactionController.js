@@ -97,8 +97,7 @@ exports.approve = async (req, res, next) => {
  * =============================== */
 exports.reject = async (req, res, next) => {
   try {
-    const { rejectionReason } = req.body;
-    const result = await svc.rejectPlanned(req.params.id, rejectionReason);
+    const result = await svc.rejectPlanned(req.params.id);
 
     res.json({
       ok: true,
@@ -115,16 +114,24 @@ exports.reject = async (req, res, next) => {
  * =============================== */
 exports.completeReceive = async (req, res, next) => {
   try {
-    // TODO: 인증 미들웨어 활성화 후 실제 userId 사용
-    const userId = req.session?.userId || "staff@dogsnack.com"; // 임시 기본값
-    const result = await svc.completePlannedReceive(req.params.id, req.body, userId);
+    const actualQuantity = typeof req.body.actualQuantity === 'string'
+      ? Number(req.body.actualQuantity.replace(/,/g, '').trim())
+      : req.body.actualQuantity;
+
+    const payload = { actualQuantity }; // 필요시 receivedAt, note 등 추가
+    const userId = req.session?.userId ?? "staff@dogsnack.com";
+
+    const result = await svc.completePlannedReceive(req.params.id, payload, userId);
 
     res.json({
       ok: true,
       message: result.message,
       data: {
         planned: result.planned,
+        completedPartial: result.completedPartial ?? null,
         inventory: result.inventory,
+        barcode: result.barcode ?? null,
+        labelPrint: result.labelPrint ?? null,
       },
     });
   } catch (error) {
@@ -132,22 +139,38 @@ exports.completeReceive = async (req, res, next) => {
   }
 };
 
+
 /* ===============================
  * 🔹 예정 출고 완료 처리
  * =============================== */
 exports.completeIssue = async (req, res, next) => {
   try {
-    // TODO: 인증 미들웨어 활성화 후 실제 userId 사용
-    const userId = req.session?.userId || "staff@dogsnack.com"; // 임시 기본값
-    const result = await svc.completePlannedIssue(req.params.id, req.body, userId);
+    const actualQuantity = typeof req.body.actualQuantity === 'string'
+      ? Number(req.body.actualQuantity.replace(/,/g, '').trim())
+      : req.body.actualQuantity;
+
+    const payload = { 
+      actualQuantity,
+      transferType: req.body.transferType, // FACTORY_TRANSFER, WAREHOUSE_TRANSFER, CUSTOMER, B2B
+      labelSize: req.body.labelSize,
+      labelQuantity: req.body.labelQuantity,
+      printerName: req.body.printerName,
+      shippingInfo: req.body.shippingInfo,
+      note: req.body.note,
+    };
+    const userId = req.session?.userId ?? "staff@dogsnack.com";
+
+    const result = await svc.completePlannedIssue(req.params.id, payload, userId);
 
     res.json({
       ok: true,
       message: result.message,
       data: {
         planned: result.planned,
+        completedPartial: result.completedPartial ?? null,
         issued: result.issued,
         traces: result.traces,
+        labelPrint: result.labelPrint ?? null,
       },
     });
   } catch (error) {

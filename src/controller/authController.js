@@ -59,7 +59,7 @@ async function logout(req, res) {
 async function getMe(req, res) {
   try {
     const userId = req.session.userId;
-    
+    console.log("userId : ", userId);
     if (!userId) {
       return res.status(401).json({ 
         message: "로그인이 필요합니다" 

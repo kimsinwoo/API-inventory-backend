@@ -68,6 +68,9 @@ exports.printLabel = asyncHandler(async (req, res) => {
       saveTemplate = false,
     } = req.body;
 
+
+    const templateDbData = await LabelTemplate.findOne({ where: { registration_number: registrationNumber } });
+    console.log('템플릿 데이터 : ',templateDbData);
     // 필수 파라미터 검증
     if (!templateType) {
       return res.status(400).json({
@@ -153,9 +156,6 @@ exports.printLabel = asyncHandler(async (req, res) => {
         message: `바코드 생성 실패: ${error.message}`,
       });
     }
-
-    const templateDbData = await LabelTemplate.findOne({ where: { registration_number: registrationNumber } });
-    console.log(templateDbData);
     // 템플릿 데이터 준비 (모든 템플릿에서 사용할 수 있도록 모든 변수 포함)
     const templateData = {
       productName: productName || item.name || '',
@@ -163,8 +163,8 @@ exports.printLabel = asyncHandler(async (req, res) => {
       expiryDate,
       barcodeNumber: barcode,
       barcodeBase64,
-      storageCondition: storageCondition || '냉동',
-      registrationNumber: registrationNumber || item.code || '',
+      storageCondition: storageCondition,
+      registrationNumber: registrationNumber,
       categoryAndForm: templateDbData.category_and_form,
       ingredients: templateDbData.ingredients,
       rawMaterials: templateDbData.raw_materials,

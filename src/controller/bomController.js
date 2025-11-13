@@ -19,15 +19,35 @@ module.exports = {
 
   create: async (req, res, next) => {
     try {
+      // 1) BOM 생성
       const created = await svc.create(req.body);
-      res.status(201).json({ ok: true, data: created });
-    } catch (e) {
-      if (e && e.name === "SequelizeUniqueConstraintError") {
-        return res.status(409).json({ ok: false, message: "이미 존재하는 BOM 명입니다." });
+
+      // 2) Items 테이블에서 동일 name 품목에 bom_id 연결
+      //    Sequelize.update 반환값: [affectedCount]
+      const [affectedCount] = await items.update(
+        { bom_id: created.id },
+        { where: { name: created.name } }
+      );
+
+      // 3) 연관된 품목이 하나도 없으면 에러 반환
+      if (affectedCount === 0) {
+        return res
+          .status(400)
+          .json({ ok: false, message: '품목을 등록해주세요.' });
       }
-      next(e);
+
+      // 4) 정상: BOM + 품목 연결 완료
+      return res.status(201).json({ ok: true, data: created });
+    } catch (e) {
+      if (e && e.name === 'SequelizeUniqueConstraintError') {
+        return res
+          .status(409)
+          .json({ ok: false, message: '이미 존재하는 BOM 명입니다.' });
+      }
+      return next(e);
     }
   },
+
 
   update: async (req, res, next) => {
     try {

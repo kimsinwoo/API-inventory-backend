@@ -69,13 +69,6 @@ exports.validateApprovePlanned = validate({
   }),
 });
 
-// 거부/취소 검증
-exports.validateRejectPlanned = validate({
-  body: z.object({
-    rejectionReason: z.string().trim().min(1, "거부 사유는 필수입니다").max(500),
-  }),
-});
-
 // 완료 처리 검증 (입고 예정 → 실제 입고)
 exports.validateCompletePlannedReceive = validate({
   body: z.object({
