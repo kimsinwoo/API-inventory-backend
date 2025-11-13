@@ -18,15 +18,15 @@ exports.list = async ({ search = "", page = 1, limit = 50 }) => {
 
   const { rows, count } = await BOM.findAndCountAll({
     where,
-    attributes: ["id", "name", "description", "created_at", "updated_at"], // BOM 필드
+    attributes: ["id", "name", "description", "created_at", "updated_at"],
     include: [{
       model: BOMComponent,
       as: "components",
-      attributes: ["id", "quantity", "unit", "sort_order", "loss_rate"], // BOMComponent 필드
-      include: [{ 
-        model: Items, 
-        as: "item", 
-        attributes: ["id", "code", "name", "category"] // Items 필드 (unit 제거)
+      attributes: ["id", "quantity", "unit", "sort_order", "loss_rate"],
+      include: [{
+        model: Items,
+        as: "item",
+        attributes: ["id", "code", "name", "category"]
       }],
     }],
     order: [["updated_at", "DESC"], [{ model: BOMComponent, as: "components" }, "sort_order", "ASC"]],
@@ -36,8 +36,6 @@ exports.list = async ({ search = "", page = 1, limit = 50 }) => {
 
   return { rows, count, page: Number(page), limit: Number(limit) };
 };
-
-// services/bomService.js (또는 현재 get 이 있는 파일)
 
 exports.get = async (id) => {
   return BOM.findByPk(id, {
@@ -63,24 +61,32 @@ exports.get = async (id) => {
   });
 };
 
-
-exports.create = async ({ name, description, lines = [] }) => {
+exports.create = async ({ name, code, description, lines = [] }) => {
   const t = await db.sequelize.transaction();
   try {
-    const bom = await BOM.create({ name, description }, { transaction: t });
+    const bom = await BOM.create(
+      {
+        name,
+        description: description !== undefined ? description : null,
+      },
+      { transaction: t }
+    );
 
     let order = 1;
     for (const line of lines) {
       const item_id = await resolveItemId({ itemId: line.itemId, itemCode: line.itemCode });
       if (!item_id) throw new Error(`존재하지 않는 품목입니다: ${line.itemCode || line.itemId}`);
-      await BOMComponent.create({
-        bom_id: bom.id,
-        item_id,
-        quantity: Number(line.quantity),
-        unit: String(line.unit),
-        sort_order: order++,
-        loss_rate: Number(line.lossRate ?? 0),
-      }, { transaction: t });
+      await BOMComponent.create(
+        {
+          bom_id: bom.id,
+          item_id,
+          quantity: Number(line.quantity),
+          unit: String(line.unit),
+          sort_order: order++,
+          loss_rate: Number(line.lossRate ?? 0),
+        },
+        { transaction: t }
+      );
     }
 
     await t.commit();
@@ -104,7 +110,7 @@ exports.update = async (id, { name, description, lines }) => {
       },
       { transaction: t }
     );
-    
+
     if (Array.isArray(lines)) {
       await BOMComponent.destroy({ where: { bom_id: id }, transaction: t });
 

@@ -1,4 +1,5 @@
 const svc = require("../services/bomService");
+const { Items } = require("../../models");
 
 module.exports = {
   index: async (req, res, next) => {
@@ -11,6 +12,19 @@ module.exports = {
 
   show: async (req, res, next) => {
     try {
+      // code 파라미터 지원: ?code=ITEM001
+      if (req.query && req.query.code) {
+        const item = await Items.findOne({ where: { code: req.query.code } });
+        if (!item || !item.bom_id) {
+          return res.status(404).json({ ok: false, message: "해당 코드의 품목, BOM이 없습니다." });
+        }
+        const bom = await svc.get(item.bom_id);
+        if (!bom) {
+          return res.status(404).json({ ok: false, message: "BOM not found" });
+        }
+        return res.json({ ok: true, data: bom });
+      }
+      // 기존: id로 찾기
       const one = await svc.get(req.params.id);
       if (!one) return res.status(404).json({ ok: false, message: "BOM not found" });
       res.json({ ok: true, data: one });
@@ -22,18 +36,22 @@ module.exports = {
       // 1) BOM 생성
       const created = await svc.create(req.body);
 
-      // 2) Items 테이블에서 동일 name 품목에 bom_id 연결
-      //    Sequelize.update 반환값: [affectedCount]
-      const [affectedCount] = await items.update(
+      // 2) Items 테이블에서 동일 code 품목에 bom_id 연결 (code로 검색하도록 수정)
+      //    만약 req.body.code가 없으면 created.code 사용 (혹시 undefined일 때 대비)
+      const bomCode = req.body.code || created.code;
+      if (!bomCode) {
+        return res.status(400).json({ ok: false, message: 'code가 필요합니다.' });
+      }
+      const [affectedCount] = await Items.update(
         { bom_id: created.id },
-        { where: { name: created.name } }
+        { where: { code: bomCode } }
       );
 
       // 3) 연관된 품목이 하나도 없으면 에러 반환
       if (affectedCount === 0) {
         return res
           .status(400)
-          .json({ ok: false, message: '품목을 등록해주세요.' });
+          .json({ ok: false, message: '해당 code의 품목을 등록해주세요.' });
       }
 
       // 4) 정상: BOM + 품목 연결 완료
@@ -47,7 +65,6 @@ module.exports = {
       return next(e);
     }
   },
-
 
   update: async (req, res, next) => {
     try {

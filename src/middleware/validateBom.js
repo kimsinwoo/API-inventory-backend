@@ -10,12 +10,6 @@ function validLine(line = {}) {
     if (!name || !String(name).trim()) {
       return res.status(400).json({ ok: false, message: "BOM 명(name)은 필수입니다." });
     }
-    if (!Array.isArray(lines) || lines.length === 0) {
-      return res.status(400).json({ ok: false, message: "lines는 1개 이상 필요합니다." });
-    }
-    if (!lines.every(validLine)) {
-      return res.status(400).json({ ok: false, message: "lines 항목이 유효하지 않습니다." });
-    }
     next();
   };
   
