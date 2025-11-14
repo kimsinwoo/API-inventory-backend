@@ -52,7 +52,7 @@ exports.getPrinters = asyncHandler(async (req, res) => {
 exports.printLabel = asyncHandler(async (req, res) => {
   try {
     const {
-      templateType, // large, medium, small, verysmall
+      templateType, 
       itemId,
       manufactureDate, // YYYY-MM-DD
       expiryDate, // YYYY-MM-DD

@@ -5,23 +5,28 @@
  * - 프린터 목록 조회
  */
 
-const express = require("express");
+const express = require('express');
+const { z } = require('zod');
+const labelController = require('../controller/labelController');
+
 const router = express.Router();
-const labelController = require("../controller/labelController");
-const { z } = require("zod");
 
 // Zod 검증 미들웨어
 function validate(schemas) {
   return (req, res, next) => {
     try {
-      if (schemas.query) req.query = schemas.query.parse(req.query);
-      if (schemas.body) req.body = schemas.body.parse(req.body);
+      if (schemas.query) {
+        req.query = schemas.query.parse(req.query);
+      }
+      if (schemas.body) {
+        req.body = schemas.body.parse(req.body);
+      }
       next();
-    } catch (e) {
+    } catch (error) {
       res.status(400).json({
         ok: false,
-        message: "ValidationError",
-        detail: e.errors ?? String(e),
+        message: 'ValidationError',
+        detail: error.errors ?? String(error)
       });
     }
   };
@@ -30,39 +35,84 @@ function validate(schemas) {
 /**
  * 프린터 목록 조회
  * GET /api/label/printers
+ * - cloud 모드에서는 [] 리턴하도록 controller/service 에서 처리
  */
-router.get("/printers", labelController.getPrinters);
+router.get('/printers', labelController.getPrinters);
 
 /**
  * 라벨 프린트
- *  
+ * POST /api/label/print
  */
 const validatePrintLabel = validate({
   body: z.object({
-    templateType: z.enum(["large", "medium", "small", "verysmall"], {
-      errorMap: () => ({ message: "templateType은 large, medium, small, verysmall 중 하나여야 합니다" }),
+    templateType: z.enum(['large', 'medium', 'small', 'verysmall'], {
+      errorMap: () => ({
+        message: 'templateType은 large, medium, small, verysmall 중 하나여야 합니다'
+      })
     }),
-    itemId: z.union([
-      z.number().int().positive("itemId는 1 이상이어야 합니다").max(999, "itemId는 999 이하여야 합니다"),
-      z.string().regex(/^\d+$/, "itemId는 숫자여야 합니다").transform(Number).refine((val) => val >= 1 && val <= 999, "itemId는 1-999 사이여야 합니다"),
-    ]),
-    manufactureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "제조일자는 YYYY-MM-DD 형식이어야 합니다"),
-    expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "유통기한은 YYYY-MM-DD 형식이어야 합니다"),
+
+    // itemId: 숫자 또는 숫자 문자열 → number 변환
+    itemId: z
+      .union([
+        z
+          .number({
+            required_error: 'itemId는 숫자여야 합니다'
+          })
+          .int('itemId는 정수여야 합니다')
+          .positive('itemId는 1 이상이어야 합니다'),
+        z
+          .string({
+            required_error: 'itemId는 숫자여야 합니다'
+          })
+          .regex(/^\d+$/, 'itemId는 숫자여야 합니다')
+          .transform((val) => Number(val))
+          .refine((val) => Number.isInteger(val) && val > 0, {
+            message: 'itemId는 1 이상의 정수여야 합니다'
+          })
+      ])
+      .transform((val) => Number(val)),
+
+    manufactureDate: z
+      .string({
+        required_error: '제조일자는 필수입니다'
+      })
+      .regex(/^\d{4}-\d{2}-\d{2}$/, '제조일자는 YYYY-MM-DD 형식이어야 합니다'),
+
+    expiryDate: z
+      .string({
+        required_error: '유통기한은 필수입니다'
+      })
+      .regex(/^\d{4}-\d{2}-\d{2}$/, '유통기한은 YYYY-MM-DD 형식이어야 합니다'),
+
+    // cloud 모드에서는 사용하지 않을 수 있으므로 optional
     printerName: z.string().optional(),
+
+    // printCount: 숫자 또는 숫자 문자열 → number, 1 이상
     printCount: z
-      .number()
-      .int()
-      .positive()
-      .default(1)
-      .or(z.string().regex(/^\d+$/).transform(Number))
-      .optional(),
+      .union([
+        z
+          .number()
+          .int('printCount는 정수여야 합니다')
+          .positive('printCount는 1 이상이어야 합니다'),
+        z
+          .string()
+          .regex(/^\d+$/, 'printCount는 숫자여야 합니다')
+          .transform((val) => Number(val))
+          .refine((val) => Number.isInteger(val) && val > 0, {
+            message: 'printCount는 1 이상의 정수여야 합니다'
+          })
+      ])
+      .optional()
+      .default(1),
+
     pdfOptions: z
       .object({
         width: z.string().optional(),
         height: z.string().optional(),
-        margin: z.string().optional(),
+        margin: z.string().optional()
       })
       .optional(),
+
     productName: z.string().optional(),
     storageCondition: z.string().optional(),
     registrationNumber: z.string().optional(),
@@ -70,11 +120,13 @@ const validatePrintLabel = validate({
     ingredients: z.string().optional(),
     rawMaterials: z.string().optional(),
     actualWeight: z.string().optional(),
-    saveTemplate: z.boolean().default(false).optional(),
-  }),
+
+    // 템플릿 저장 여부 (선택)
+    saveTemplate: z.boolean().optional().default(false)
+  })
 });
 
-router.post("/print", validatePrintLabel, labelController.printLabel);
+router.post('/print', validatePrintLabel, labelController.printLabel);
 
 /**
  * 템플릿 저장 (데이터만)
@@ -82,12 +134,18 @@ router.post("/print", validatePrintLabel, labelController.printLabel);
  */
 const validateSaveTemplate = validate({
   body: z.object({
-    labelType: z.enum(["large", "medium", "small", "verysmall"]),
+    labelType: z.enum(['large', 'medium', 'small', 'verysmall']),
     itemId: z
-      .number()
-      .int()
-      .positive()
-      .or(z.string().regex(/^\d+$/).transform(Number))
+      .union([
+        z.number().int().positive(),
+        z
+          .string()
+          .regex(/^\d+$/)
+          .transform((val) => Number(val))
+          .refine((val) => Number.isInteger(val) && val > 0, {
+            message: 'itemId는 1 이상의 정수여야 합니다'
+          })
+      ])
       .optional(),
     itemName: z.string().optional(),
     storageCondition: z.string().optional(),
@@ -95,11 +153,11 @@ const validateSaveTemplate = validate({
     categoryAndForm: z.string().optional(),
     ingredients: z.string().optional(),
     rawMaterials: z.string().optional(),
-    actualWeight: z.string().optional(),
-  }),
+    actualWeight: z.string().optional()
+  })
 });
 
-router.post("/template", validateSaveTemplate, labelController.saveTemplate);
+router.post('/template', validateSaveTemplate, labelController.saveTemplate);
 
 /**
  * 템플릿 목록 조회
@@ -107,17 +165,27 @@ router.post("/template", validateSaveTemplate, labelController.saveTemplate);
  */
 const validateGetTemplates = validate({
   query: z.object({
-    page: z.string().regex(/^\d+$/).transform(Number).default("1").optional(),
-    limit: z.string().regex(/^\d+$/).transform(Number).default("50").optional(),
-  }),
+    page: z
+      .string()
+      .regex(/^\d+$/)
+      .transform((val) => Number(val))
+      .optional()
+      .default(1),
+    limit: z
+      .string()
+      .regex(/^\d+$/)
+      .transform((val) => Number(val))
+      .optional()
+      .default(50)
+  })
 });
 
-router.get("/templates", validateGetTemplates, labelController.getTemplates);
+router.get('/templates', validateGetTemplates, labelController.getTemplates);
 
 /**
- * 템플릿 조회
+ * 템플릿 단일 조회
  * GET /api/label/template/:templateId
  */
-router.get("/template/:templateId", labelController.getTemplate);
+router.get('/template/:templateId', labelController.getTemplate);
 
 module.exports = router;
