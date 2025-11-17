@@ -43,51 +43,51 @@ router.get('/printers', labelController.getPrinters);
  * 라벨 프린트
  * POST /api/label/print
  */
-const validatePrintLabel = validate({
+const validatePrintSavedLabelPdf = validate({
   body: z.object({
+    // ✅ itemId: 숫자 또는 숫자 문자열 → number 변환
+    itemId: z
+      .union([
+        z
+          .number({
+            required_error: 'labelId는 숫자여야 합니다'
+          })
+          .int('labelId는 정수여야 합니다')
+          .positive('labelId는 1 이상이어야 합니다'),
+        z
+          .string({
+            required_error: 'labelId는 숫자여야 합니다'
+          })
+          .regex(/^\d+$/, 'labelId는 숫자여야 합니다')
+          .transform((val) => Number(val))
+          .refine((val) => Number.isInteger(val) && val > 0, {
+            message: 'labelId는 1 이상의 정수여야 합니다'
+          })
+      ])
+      .transform((val) => Number(val)),
+
+    // ✅ templateType: large | medium | small | verysmall
     templateType: z.enum(['large', 'medium', 'small', 'verysmall'], {
       errorMap: () => ({
         message: 'templateType은 large, medium, small, verysmall 중 하나여야 합니다'
       })
     }),
 
-    // itemId: 숫자 또는 숫자 문자열 → number 변환
-    itemId: z
-      .union([
-        z
-          .number({
-            required_error: 'itemId는 숫자여야 합니다'
-          })
-          .int('itemId는 정수여야 합니다')
-          .positive('itemId는 1 이상이어야 합니다'),
-        z
-          .string({
-            required_error: 'itemId는 숫자여야 합니다'
-          })
-          .regex(/^\d+$/, 'itemId는 숫자여야 합니다')
-          .transform((val) => Number(val))
-          .refine((val) => Number.isInteger(val) && val > 0, {
-            message: 'itemId는 1 이상의 정수여야 합니다'
-          })
-      ])
-      .transform((val) => Number(val)),
-
+    // ✅ 제조일자
     manufactureDate: z
       .string({
         required_error: '제조일자는 필수입니다'
       })
       .regex(/^\d{4}-\d{2}-\d{2}$/, '제조일자는 YYYY-MM-DD 형식이어야 합니다'),
 
+    // ✅ 유통기한
     expiryDate: z
       .string({
         required_error: '유통기한은 필수입니다'
       })
       .regex(/^\d{4}-\d{2}-\d{2}$/, '유통기한은 YYYY-MM-DD 형식이어야 합니다'),
 
-    // cloud 모드에서는 사용하지 않을 수 있으므로 optional
-    printerName: z.string().optional(),
-
-    // printCount: 숫자 또는 숫자 문자열 → number, 1 이상
+    // ✅ printCount: 선택, 기본값 1
     printCount: z
       .union([
         z
@@ -103,30 +103,11 @@ const validatePrintLabel = validate({
           })
       ])
       .optional()
-      .default(1),
-
-    pdfOptions: z
-      .object({
-        width: z.string().optional(),
-        height: z.string().optional(),
-        margin: z.string().optional()
-      })
-      .optional(),
-
-    productName: z.string().optional(),
-    storageCondition: z.string().optional(),
-    registrationNumber: z.string().optional(),
-    categoryAndForm: z.string().optional(),
-    ingredients: z.string().optional(),
-    rawMaterials: z.string().optional(),
-    actualWeight: z.string().optional(),
-
-    // 템플릿 저장 여부 (선택)
-    saveTemplate: z.boolean().optional().default(false)
+      .default(1)
   })
 });
 
-router.post('/print', validatePrintLabel, labelController.printLabel);
+router.post('/pdf', validatePrintSavedLabelPdf, labelController.printSavedLabelPdf);
 
 /**
  * 템플릿 저장 (데이터만)

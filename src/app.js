@@ -54,12 +54,11 @@ app.use(express.json({ limit: "10mb" })); // JSON 형식의 요청 본문 파싱
 app.use(express.urlencoded({ extended: true, limit: "10mb" })); // URL 인코딩된 데이터 파싱
 
 app.use(
-  '/static/labels',
+  'api/static/labels',
   require('express').static(
     path.resolve(process.cwd(), appConfig.printer.pdfSavePath)
   )
 );
-app.use('/api/label', require('./routes/labelRoute'));
 
 
 // 활동 로그 미들웨어 (헬스체크 제외)

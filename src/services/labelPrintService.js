@@ -300,9 +300,17 @@ async function savePdfToFile(pdfBuffer, filename = null) {
 }
 
 // 라벨 프린트 (템플릿 기반)
+// labelPrintService.js 같은 곳이라고 가정
 exports.printLabel = async (params) => {
   try {
-    const { templateType, templateData, printerName, printCount = 1 } = params;
+    const {
+      templateType,
+      templateData,
+      printerName,
+      printCount = 1,
+      returnPdfBuffer = false // ✅ 추가: PDF 버퍼만 받고 싶을 때
+    } = params;
+
     const validTypes = ['large', 'medium', 'small', 'verysmall'];
 
     if (!validTypes.includes(templateType)) {
@@ -315,7 +323,23 @@ exports.printLabel = async (params) => {
     const html = await renderTemplate(templateType, templateData);
     const pdfBuffer = await convertHtmlToPdf(html, finalPdfOptions);
 
-    // 1) cloud 모드 또는 프린터 비활성 → 파일만 저장
+    /**
+     * ✅ 1) 프론트/로컬 에이전트로 넘길 PDF 버퍼만 필요할 때
+     * - 예) 프론트에서 pdfBase64로 받아서 http://localhost:4310/print 로 보내기
+     */
+    if (returnPdfBuffer) {
+      return {
+        success: true,
+        message: `PDF 버퍼 생성 완료 (${printCount}개 라벨)`,
+        printCount,
+        mode: 'buffer',
+        pdfBuffer // Buffer 그대로
+      };
+    }
+
+    /**
+     * ✅ 2) 기존 cloud 모드: 파일만 저장
+     */
     if (appConfig.printer.type === 'cloud' || !appConfig.printer.enabled) {
       const filePath = await savePdfToFile(pdfBuffer);
       const base = appConfig.printer.publicBaseUrl;
@@ -335,7 +359,9 @@ exports.printLabel = async (params) => {
       };
     }
 
-    // 2) 서버 인쇄 모드 (서버에 연결된 프린터로 인쇄)
+    /**
+     * ✅ 3) 서버 인쇄 모드 (이건 기존 로직 그대로)
+     */
     if (!printerName || typeof printerName !== 'string' || printerName.trim().length === 0) {
       throw new Error('서버 인쇄 모드에서는 프린터 이름이 필요합니다');
     }

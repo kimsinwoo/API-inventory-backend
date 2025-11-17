@@ -11,6 +11,8 @@ const { generateLabelBarcode, generateBarcodeImage } = require("../utils/labelBa
 const db = require("../../models");
 const { Items, LabelTemplate } = db;
 const asyncHandler = require("../middleware/asyncHandler");
+const axios = require('axios');
+const { where } = require("sequelize");
 
 /**
  * 프린터 목록 조회
@@ -18,7 +20,7 @@ const asyncHandler = require("../middleware/asyncHandler");
  */
 exports.getPrinters = asyncHandler(async (req, res) => {
   try {
-    const printers = await labelPrintService.getAvailablePrinters();
+    const printers = await axios.get('http://210.90.113.200/printers')
 
     if (!printers || printers.length === 0) {
       return res.status(200).json({
@@ -47,79 +49,61 @@ exports.getPrinters = asyncHandler(async (req, res) => {
 
 /**
  * 라벨 프린트
- * POST /api/label/print
+ * POST /api/label/pdf
  */
-exports.printLabel = asyncHandler(async (req, res) => {
+exports.printSavedLabelPdf = asyncHandler(async (req, res) => {
   try {
+    console.log('요청 들어옴 /label/pdf, body:', req.body);
+
     const {
-      templateType, 
-      itemId,
-      manufactureDate, // YYYY-MM-DD
-      expiryDate, // YYYY-MM-DD
-      printerName,
+      itemId,        // ✅ 이제 labelId가 아니라 itemId
+      templateType,  // large, medium, small, verysmall
       printCount = 1,
-      productName,
-      storageCondition,
-      registrationNumber,
-      categoryAndForm,
-      ingredients,
-      rawMaterials,
-      actualWeight,
-      saveTemplate = false,
-    } = req.body;
+      manufactureDate,
+      expiryDate,
+    } = req.body || {};
 
-
-    const templateDbData = await LabelTemplate.findOne({ where: { registration_number: registrationNumber } });
-    console.log('템플릿 데이터 : ',templateDbData);
-    // 필수 파라미터 검증
-    if (!templateType) {
-      return res.status(400).json({
-        ok: false,
-        message: "templateType이 필요합니다 (large, medium, small, verysmall)",
-      });
-    }
-
+    // ---- 기본 검증 (Zod에서 1차로 검증하지만, 여기서도 방어적으로 한 번 더) ----
     if (!itemId) {
       return res.status(400).json({
         ok: false,
-        message: "itemId가 필요합니다",
+        message: 'itemId가 필요합니다.',
       });
     }
 
-    if (!manufactureDate) {
+    if (!templateType) {
       return res.status(400).json({
         ok: false,
-        message: "manufactureDate가 필요합니다 (YYYY-MM-DD)",
+        message:
+          'templateType이 필요합니다. (large, medium, small, verysmall)',
       });
     }
 
-    if (!expiryDate) {
+    if (!manufactureDate || !expiryDate) {
       return res.status(400).json({
         ok: false,
-        message: "expiryDate가 필요합니다 (YYYY-MM-DD)",
+        message: 'manufactureDate, expiryDate가 필요합니다.',
       });
     }
 
-    // 날짜 형식 검증
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(manufactureDate) || !dateRegex.test(expiryDate)) {
-      return res.status(400).json({
+    // ---- 템플릿 조회 (item_id 기준) ----
+    const template = await LabelTemplate.findOne({
+      where: { item_id: itemId },
+    });
+
+    if (!template) {
+      return res.status(404).json({
         ok: false,
-        message: "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)",
+        message: `LabelTemplate을 찾을 수 없습니다 (item_id: ${itemId})`,
       });
     }
 
-    // 아이템 ID 숫자 변환
-    const itemIdNum = Number(itemId);
-    if (!itemIdNum || itemIdNum < 1 || itemIdNum > 999) {
-      return res.status(400).json({
-        ok: false,
-        message: "itemId는 1-999 사이의 숫자여야 합니다",
-      });
-    }
+    console.log('템플릿 데이터:', template?.toJSON?.() ?? template);
 
-    // 아이템 조회
+    // ---- 품목 조회 ----
+    const itemIdNum = Number(template.item_id || template.itemId || itemId);
     const item = await Items.findByPk(itemIdNum);
+
     if (!item) {
       return res.status(404).json({
         ok: false,
@@ -127,118 +111,130 @@ exports.printLabel = asyncHandler(async (req, res) => {
       });
     }
 
-    // 날짜 유효성 검증 (유통기한이 제조일자보다 이후인지 확인)
-    const manufacture = new Date(manufactureDate);
-    const expiry = new Date(expiryDate);
-    if (isNaN(manufacture.getTime()) || isNaN(expiry.getTime())) {
-      return res.status(400).json({
-        ok: false,
-        message: "날짜 형식이 올바르지 않습니다",
-      });
-    }
-    if (expiry < manufacture) {
-      return res.status(400).json({
-        ok: false,
-        message: "유통기한이 제조일자보다 이전일 수 없습니다",
-      });
-    }
+    // ---- 바코드 생성 + 이미지 ----
+    const barcode = generateLabelBarcode(itemIdNum, manufactureDate, expiryDate);
+    const barcodeBase64 = await generateBarcodeImage(barcode);
 
-    // 바코드 생성 (15자리)
-    let barcode;
-    let barcodeBase64;
-    try {
-      barcode = generateLabelBarcode(itemIdNum, manufactureDate, expiryDate);
-      barcodeBase64 = await generateBarcodeImage(barcode);
-    } catch (error) {
-      console.error("바코드 생성 실패:", error);
-      return res.status(400).json({
-        ok: false,
-        message: `바코드 생성 실패: ${error.message}`,
-      });
-    }
-    // 템플릿 데이터 준비 (모든 템플릿에서 사용할 수 있도록 모든 변수 포함)
+    // ---- 라벨 EJS에서 사용할 필드 구성 ----
     const templateData = {
-      productName: productName || item.name || '',
+      productName: template.item_name || template.itemName || item.name || '',
       manufactureDate,
       expiryDate,
       barcodeNumber: barcode,
       barcodeBase64,
-      storageCondition: storageCondition,
-      registrationNumber: registrationNumber,
-      categoryAndForm: templateDbData.category_and_form,
-      ingredients: templateDbData.ingredients,
-      rawMaterials: templateDbData.raw_materials,
-      actualWeight: templateDbData.actual_weight,
-      isLoadingBarcode: false, // verysmall 템플릿용
+      storageCondition:
+        template.storage_condition || template.storageCondition || '냉동',
+      registrationNumber:
+        template.registration_number || template.registrationNumber || '',
+      categoryAndForm:
+        template.category_and_form || template.categoryAndForm || '',
+      ingredients: template.ingredients || '',
+      rawMaterials: template.raw_materials || template.rawMaterials || '',
+      actualWeight: template.actual_weight || template.actualWeight || '',
+      isLoadingBarcode: false,
     };
 
-    // 템플릿 저장 (선택사항)
-    let templateRecord = null;
-    if (saveTemplate) {
-      try {
-        // HTML 컨텐츠는 프린트 후 생성된 것을 저장할 수 있지만,
-        // 여기서는 데이터만 저장
-        templateRecord = await labelTemplateService.saveTemplate({
-          itemId: itemIdNum,
-          itemName: item.name,
-          labelType: templateType,
-          storageCondition: storageCondition,
-          registrationNumber: registrationNumber,
-          categoryAndForm: categoryAndForm,
-          ingredients: ingredients,
-          rawMaterials: rawMaterials,
-          actualWeight: actualWeight,
-          htmlContent: null, // 데이터만 저장
-          printerName: printerName || null,
-          printCount: Number(printCount) || 1,
-          printStatus: 'PENDING',
-        });
-      } catch (templateError) {
-        console.error("템플릿 저장 실패 (계속 진행):", templateError.message);
-      }
-    }
-
-    // 라벨 프린트
+    // ==========================================
+    // ✅ PDF 버퍼만 생성 (프린트 X, returnPdfBuffer: true)
+    // ==========================================
     const printResult = await labelPrintService.printLabel({
       templateType,
       templateData,
-      printerName: printerName || undefined,
-      printCount: Number(printCount),
+      printCount: Number(printCount) || 1,
+      returnPdfBuffer: true,
     });
 
-    // 템플릿 결과 업데이트
-    if (templateRecord && templateRecord.id) {
-      try {
-        await labelTemplateService.updateTemplateResult(templateRecord.id, {
-          success: printResult.success,
-          errorMessage: printResult.success ? null : printResult.error,
-        });
-      } catch (updateError) {
-        console.error("템플릿 결과 업데이트 실패:", updateError.message);
-      }
+    console.log(
+      '[printSavedLabelPdf] labelPrintService.printLabel 결과 타입:',
+      typeof printResult,
+      printResult && printResult.constructor
+        ? printResult.constructor.name
+        : null,
+    );
+
+    if (!printResult || printResult.success === false) {
+      return res.status(500).json({
+        ok: false,
+        message:
+          printResult?.message ||
+          'PDF 버퍼 생성에 실패했습니다.',
+        error: printResult?.error || null,
+      });
     }
 
-    // 응답 반환
-    const statusCode = printResult.success ? 200 : 500;
-    res.status(statusCode).json({
-      ok: printResult.success,
-      message: printResult.message,
+    // ------------------------------
+    // 🔍 pdfBuffer 실제 위치/타입 유연하게 처리
+    // ------------------------------
+    let rawPdf =
+      printResult.pdfBuffer ??
+      printResult.buffer ??
+      printResult.data?.pdfBuffer ??
+      printResult.data?.buffer ??
+      printResult.data ??
+      printResult;
+
+    console.log(
+      '[printSavedLabelPdf] rawPdf 타입:',
+      typeof rawPdf,
+      rawPdf && rawPdf.constructor
+        ? rawPdf.constructor.name
+        : null,
+    );
+
+    // ---- rawPdf → base64 문자열로 통일 ----
+    let pdfBase64;
+
+    if (Buffer.isBuffer(rawPdf)) {
+      // ✅ 진짜 Buffer인 경우
+      pdfBase64 = rawPdf.toString('base64');
+    } else if (rawPdf instanceof Uint8Array) {
+      // ✅ Uint8Array인 경우
+      pdfBase64 = Buffer.from(rawPdf).toString('base64');
+    } else if (Array.isArray(rawPdf) && rawPdf.every((n) => typeof n === 'number')) {
+      // ✅ [37,80,68,...] 같은 number[] 인 경우
+      pdfBase64 = Buffer.from(rawPdf).toString('base64');
+    } else if (typeof rawPdf === 'string') {
+      const trimmed = rawPdf.trim();
+
+      // "37,80,68,..." 이런 CSV 숫자 문자열일 수도 있음
+      const looksLikeCsv = /^[0-9]+(,[0-9]+)*$/.test(trimmed);
+      if (looksLikeCsv) {
+        const bytes = trimmed.split(',').map((n) => Number(n));
+        pdfBase64 = Buffer.from(bytes).toString('base64');
+      } else {
+        // 그 외는 이미 base64라고 가정
+        pdfBase64 = trimmed;
+      }
+    } else {
+      // 🔴 여기까지 왔다 = 정말로 이상한 타입
+      console.error(
+        '[printSavedLabelPdf] PDF 버퍼 형식 오류, rawPdf:',
+        rawPdf,
+      );
+      return res.status(500).json({
+        ok: false,
+        message: 'PDF 버퍼 형식이 올바르지 않습니다.',
+      });
+    }
+
+    console.log('[printSavedLabelPdf] pdfBase64 length:', pdfBase64.length);
+
+    // 최종 응답
+    return res.status(200).json({
+      ok: true,
+      message: `PDF 버퍼 생성 완료 (${Number(printCount) || 1}개 라벨)`,
       data: {
-        templateId: templateRecord?.id || null,
+        templateId: template.id,
         barcode,
-        printCount: printResult.printCount,
-        printerName: printResult.printerName || null,
-        filePath: printResult.filePath || null,
-        mode: printResult.mode || 'unknown',
-        printedAt: printResult.success ? new Date().toISOString() : null,
-        error: printResult.error || null,
+        printCount: Number(printCount) || 1,
+        pdfBase64, // ✅ 항상 base64 string 으로 반환
       },
     });
   } catch (error) {
-    console.error("라벨 프린트 컨트롤러 에러:", error);
-    res.status(500).json({
+    console.error('printSavedLabelPdf 에러:', error);
+    return res.status(500).json({
       ok: false,
-      message: `라벨 프린트 처리 중 오류가 발생했습니다: ${error.message}`,
+      message: `PDF 생성 중 오류가 발생했습니다: ${error.message}`,
       error: error.message,
     });
   }
