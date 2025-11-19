@@ -38,11 +38,11 @@ module.exports = {
         defaultValue: 1,
         comment: "Role ID (Roles 테이블 참조)",
       },
-      signature_image_path: {
-        type: Sequelize.STRING(500),
-        allowNull: true,
-        comment: "사용자 도장(서명) 이미지 경로",
-      },
+      // signature_image_path: {
+      //   type: Sequelize.STRING(500),
+      //   allowNull: true,
+      //   comment: "사용자 도장(서명) 이미지 경로",
+      // },
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,

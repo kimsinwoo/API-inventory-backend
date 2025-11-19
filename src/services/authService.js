@@ -279,7 +279,7 @@ async function updateUser(req, id, {
   position,
   department,
   role,
-  signature_image_path,
+  // signature_image_path,
 }) {
   const db = req.app.get("db");
   
@@ -367,82 +367,82 @@ async function deleteUser(req, id) {
 }
 
 /**
- * 사용자 도장(서명) 이미지 업데이트
+ * 사용자 도장(서명) 이미지 업데이트 (주석처리)
  * @param {Object} req - Express 요청 객체
  * @param {string} userId - 사용자 ID
  * @param {string} signaturePath - 도장 이미지 경로
  * @returns {Promise<Object>} 업데이트된 사용자 정보
  * @throws {Error} 사용자를 찾을 수 없는 경우
  */
-async function updateUserSignature(req, userId, signaturePath) {
-  const db = req.app.get("db");
-  
-  const user = await db.User.findByPk(userId, { 
-    include: [
-      {
-        model: db.UserProfile,
-        as: "UserProfile",
-      },
-    ],
-  });
-  
-  if (!user) {
-    throw new Error("사용자를 찾을 수 없습니다");
-  }
+// async function updateUserSignature(req, userId, signaturePath) {
+//   const db = req.app.get("db");
+//   
+//   const user = await db.User.findByPk(userId, { 
+//     include: [
+//       {
+//         model: db.UserProfile,
+//         as: "UserProfile",
+//       },
+//     ],
+//   });
+//   
+//   if (!user) {
+//     throw new Error("사용자를 찾을 수 없습니다");
+//   }
 
-  if (!user.UserProfile) {
-    throw new Error("사용자 프로필을 찾을 수 없습니다");
-  }
+//   if (!user.UserProfile) {
+//     throw new Error("사용자 프로필을 찾을 수 없습니다");
+//   }
 
-  // 기존 도장 파일이 있으면 삭제 (선택사항)
-  const fs = require("fs");
-  const path = require("path");
-  if (user.UserProfile.signature_image_path) {
-    const oldPath = path.join(__dirname, "../../", user.UserProfile.signature_image_path);
-    try {
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
-    } catch (err) {
-      // 파일 삭제 실패는 무시 (로깅만)
-      console.warn("기존 도장 파일 삭제 실패:", err.message);
-    }
-  }
+//   // 기존 도장 파일이 있으면 삭제 (선택사항)
+//   const fs = require("fs");
+//   const path = require("path");
+//   if (user.UserProfile.signature_image_path) {
+//     const oldPath = path.join(__dirname, "../../", user.UserProfile.signature_image_path);
+//     try {
+//       if (fs.existsSync(oldPath)) {
+//         fs.unlinkSync(oldPath);
+//       }
+//     } catch (err) {
+//       // 파일 삭제 실패는 무시 (로깅만)
+//       console.warn("기존 도장 파일 삭제 실패:", err.message);
+//     }
+//   }
 
-  // 도장 경로 업데이트
-  await user.UserProfile.update({
-    signature_image_path: signaturePath,
-  });
+//   // 도장 경로 업데이트
+//   await user.UserProfile.update({
+//     signature_image_path: signaturePath,
+//   });
 
-  // 업데이트된 사용자 정보 반환 (서명 이미지 URL 포함)
-  const updatedUser = await getUserById(req, userId);
-  return updatedUser;
-}
+//   // 업데이트된 사용자 정보 반환 (서명 이미지 URL 포함)
+//   const updatedUser = await getUserById(req, userId);
+//   return updatedUser;
+// }
 
 /**
- * 사용자 도장(서명) 이미지 조회
+ * 사용자 도장(서명) 이미지 조회 (주석처리)
  * @param {Object} req - Express 요청 객체
  * @param {string} userId - 사용자 ID
  * @returns {Promise<string|null>} 도장 이미지 경로 또는 null
  */
-async function getUserSignature(req, userId) {
-  const db = req.app.get("db");
-  
-  const user = await db.User.findByPk(userId, { 
-    include: [
-      {
-        model: db.UserProfile,
-        as: "UserProfile",
-      },
-    ],
-  });
-  
-  if (!user || !user.UserProfile) {
-    return null;
-  }
+// async function getUserSignature(req, userId) {
+//   const db = req.app.get("db");
+//   
+//   const user = await db.User.findByPk(userId, { 
+//     include: [
+//       {
+//         model: db.UserProfile,
+//         as: "UserProfile",
+//       },
+//     ],
+//   });
+//   
+//   if (!user || !user.UserProfile) {
+//     return null;
+//   }
 
-  return user.UserProfile.signature_image_path || null;
-}
+//   return user.UserProfile.signature_image_path || null;
+// }
 
 module.exports = {
   loginUser,
@@ -452,6 +452,6 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
-  updateUserSignature,
-  getUserSignature,
+  // updateUserSignature,
+  // getUserSignature,
 };
