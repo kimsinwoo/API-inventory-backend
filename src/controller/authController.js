@@ -255,51 +255,51 @@ async function deleteUser(req, res) {
 /**
  * 도장(서명) 이미지 업로드
  */
-async function uploadSignature(req, res) {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        ok: false,
-        message: "도장 이미지 파일을 업로드해주세요"
-      });
-    }
+// async function uploadSignature(req, res) {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({
+//         ok: false,
+//         message: "도장 이미지 파일을 업로드해주세요"
+//       });
+//     }
 
-    const userId = req.user?.id || req.session.userId;
-    if (!userId) {
-      return res.status(401).json({
-        ok: false,
-        message: "로그인이 필요합니다"
-      });
-    }
+//     const userId = req.user?.id || req.session.userId;
+//     if (!userId) {
+//       return res.status(401).json({
+//         ok: false,
+//         message: "로그인이 필요합니다"
+//       });
+//     }
 
-    // 상대 경로로 저장 (uploads/signatures/...)
-    const path = require("path");
-    const relativePath = path.relative(path.join(__dirname, "../../"), req.file.path).replace(/\\/g, "/");
-    const user = await authService.updateUserSignature(req, userId, relativePath);
+//     // 상대 경로로 저장 (uploads/signatures/...)
+//     const path = require("path");
+//     const relativePath = path.relative(path.join(__dirname, "../../"), req.file.path).replace(/\\/g, "/");
+//     const user = await authService.updateUserSignature(req, userId, relativePath);
 
-    // 서명 이미지 URL 생성
-    let signatureImageUrl = null;
-    if (user.UserProfile?.signature_image_path) {
-      const pathParts = user.UserProfile.signature_image_path.split('/');
-      const fileName = pathParts[pathParts.length - 1];
-      signatureImageUrl = `/api/static/signatures/${fileName}`;
-    }
+//     // 서명 이미지 URL 생성
+//     let signatureImageUrl = null;
+//     if (user.UserProfile?.signature_image_path) {
+//       const pathParts = user.UserProfile.signature_image_path.split('/');
+//       const fileName = pathParts[pathParts.length - 1];
+//       signatureImageUrl = `/api/static/signatures/${fileName}`;
+//     }
 
-    res.json({
-      ok: true,
-      message: "도장이 성공적으로 업로드되었습니다",
-      data: {
-        signatureImagePath: user.UserProfile.signature_image_path,
-        signatureImageUrl: signatureImageUrl
-      }
-    });
-  } catch (error) {
-    res.status(400).json({
-      ok: false,
-      message: error.message
-    });
-  }
-}
+//     res.json({
+//       ok: true,
+//       message: "도장이 성공적으로 업로드되었습니다",
+//       data: {
+//         signatureImagePath: user.UserProfile.signature_image_path,
+//         signatureImageUrl: signatureImageUrl
+//       }
+//     });
+//   } catch (error) {
+//     res.status(400).json({
+//       ok: false,
+//       message: error.message
+//     });
+//   }
+// }
 
 /**
  * 도장(서명) 이미지 조회
