@@ -346,6 +346,6 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
-  uploadSignature,
+  // uploadSignature,
   getSignature,
 };

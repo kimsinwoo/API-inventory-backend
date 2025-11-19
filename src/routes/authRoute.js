@@ -15,7 +15,7 @@ router.put("/:id", authenticate, authController.updateUser);
 router.delete("/:id", authenticate, authController.deleteUser);
 
 // 도장(서명) 관련 라우트
-router.post("/signature", authenticate, uploadSignature, handleUploadError, authController.uploadSignature);
-router.get("/signature", authenticate, authController.getSignature);
+// router.post("/signature", authenticate, uploadSignature, handleUploadError, authController.uploadSignature);
+// router.get("/signature", authenticate, authController.getSignature);
 
 module.exports = router;
