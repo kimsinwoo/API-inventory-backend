@@ -10,6 +10,12 @@ const { User, UserProfile, Role } = db;
 function requirePermission(permissionName) {
   return async (req, res, next) => {
     try {
+      // Development 환경에서는 권한 체크 건너뛰기
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Permission] Development 모드: 권한 체크 건너뛰기 (${permissionName})`);
+        return next();
+      }
+
       // 세션에서 userId 가져오기
       let userId = req.session?.userId || req.user?.id;
       

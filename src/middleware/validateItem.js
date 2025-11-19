@@ -86,6 +86,20 @@ exports.validateItemCreate = (req, res, next) => {
       wholesale_price: body.wholesalePrice != null 
         ? Number(body.wholesalePrice)
         : (body.wholesale_price != null ? Number(body.wholesale_price) : null),
+      
+      // 보관 조건 ID (camelCase와 snake_case 모두 지원)
+      storage_condition_id: body.storageConditionId !== undefined
+        ? (body.storageConditionId != null && body.storageConditionId !== '' ? Number(body.storageConditionId) : null)
+        : (body.storage_condition_id !== undefined
+          ? (body.storage_condition_id != null && body.storage_condition_id !== '' ? Number(body.storage_condition_id) : null)
+          : undefined),
+      
+      // 보관 온도
+      storage_temp: body.storageTemp !== undefined
+        ? (body.storageTemp != null && body.storageTemp !== '' ? String(body.storageTemp).trim() : null)
+        : (body.storage_temp !== undefined
+          ? (body.storage_temp != null && body.storage_temp !== '' ? String(body.storage_temp).trim() : null)
+          : undefined),
     };
 
     // 필수 필드 검증

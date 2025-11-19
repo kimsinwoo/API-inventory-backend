@@ -4,7 +4,7 @@
  * - 데이터베이스와의 직접적인 상호작용 담당
  */
 const db = require('../../models');
-const { Items, Factory } = db;
+const { Items, Factory, StorageCondition } = db;
 
 /**
  * 모든 품목 목록 조회
@@ -16,6 +16,12 @@ exports.listItems = async () => {
       { 
         model: Factory,
         attributes: ['id', 'name', 'type', 'address']
+      },
+      {
+        model: StorageCondition,
+        as: 'StorageCondition',
+        attributes: ['id', 'name', 'temperature_range', 'humidity_range'],
+        required: false,
       },
     ],
     order: [['id', 'DESC']], // 최신 등록순
@@ -34,6 +40,12 @@ exports.getItem = async (id) => {
         model: Factory,
         attributes: ['id', 'name', 'type', 'address']
       },
+      {
+        model: StorageCondition,
+        as: 'StorageCondition',
+        attributes: ['id', 'name', 'temperature_range', 'humidity_range'],
+        required: false,
+      },
     ],
   });
 };
@@ -50,6 +62,12 @@ exports.getItemByCode = async (code) => {
       { 
         model: Factory,
         attributes: ['id', 'name', 'type', 'address']
+      },
+      {
+        model: StorageCondition,
+        as: 'StorageCondition',
+        attributes: ['id', 'name', 'temperature_range', 'humidity_range'],
+        required: false,
       },
     ],
   });
@@ -68,6 +86,8 @@ exports.createItem = async (payload) => {
     category,
     unit,
     factory_id,
+    storage_temp,
+    storage_condition_id,
     shortage,
     expiration_date,
     wholesale_price,
@@ -99,6 +119,24 @@ exports.createItem = async (payload) => {
   if (factory_id != null && !Number.isNaN(factory_id)) {
     itemData.factory_id = factory_id;
   }
+
+  // 보관 조건 ID 처리 - payload에 있으면 항상 포함 (null이어도)
+  if (storage_condition_id !== undefined) {
+    itemData.storage_condition_id = (storage_condition_id != null && !Number.isNaN(storage_condition_id)) 
+      ? storage_condition_id 
+      : null;
+  }
+
+  // 보관 온도 처리 - payload에 있으면 항상 포함 (null이어도)
+  if (storage_temp !== undefined) {
+    itemData.storage_temp = (storage_temp != null && storage_temp !== '') 
+      ? storage_temp 
+      : null;
+  }
+
+  // 디버깅: 저장되는 데이터 확인
+  console.log('=== 저장할 품목 데이터 ===');
+  console.log('itemData:', JSON.stringify(itemData, null, 2));
 
   // 품목 생성
   try {
@@ -170,6 +208,20 @@ exports.updateItem = async (id, updateData) => {
     updateFields.wholesale_price = Number(updateData.wholesalePrice);
   } else if (updateData.wholesale_price != null) {
     updateFields.wholesale_price = Number(updateData.wholesale_price);
+  }
+
+  // 보관 조건 ID (camelCase와 snake_case 모두 지원)
+  if (updateData.storageConditionId != null) {
+    updateFields.storage_condition_id = Number(updateData.storageConditionId);
+  } else if (updateData.storage_condition_id != null) {
+    updateFields.storage_condition_id = Number(updateData.storage_condition_id);
+  }
+
+  // 보관 온도 (camelCase와 snake_case 모두 지원)
+  if (updateData.storageTemp != null) {
+    updateFields.storage_temp = String(updateData.storageTemp).trim();
+  } else if (updateData.storage_temp != null) {
+    updateFields.storage_temp = String(updateData.storage_temp).trim();
   }
 
   // 품목 정보 업데이트
