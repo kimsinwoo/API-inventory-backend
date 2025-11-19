@@ -28,25 +28,26 @@ function requirePermission(permissionName) {
         });
       }
 
-      // 사용자 정보 가져오기
+      // 사용자 정보 가져오기 (UserProfile의 권한을 직접 체크)
       let user = req.user;
-      let role = null;
+      let userProfile = null;
 
-      // req.user에 role이 없거나 Role 객체가 아닌 경우 DB에서 조회
-      if (!user || !user.role || typeof user.role !== 'object' || !user.role.id) {
-        // User와 UserProfile, Role을 함께 조회
+      // req.user에 profile이 없거나 UserProfile 객체가 아닌 경우 DB에서 조회
+      if (!user || !user.profile || !user.profile.id) {
+        // User와 UserProfile을 함께 조회 (권한 필드 포함)
         user = await User.findByPk(userId, {
           include: [
             {
               model: UserProfile,
               as: "UserProfile",
               required: true, // INNER JOIN으로 UserProfile이 반드시 있어야 함
-              include: [
-                {
-                  model: Role,
-                  as: "Role",
-                  required: false, // LEFT JOIN으로 Role이 없어도 됨 (나중에 직접 조회)
-                },
+              attributes: [
+                'id', 'full_name', 'phone_number', 'email', 'hire_date', 
+                'position', 'department', 'role',
+                'can_basic_info', 'can_receiving', 'can_plant1_preprocess',
+                'can_plant_transfer', 'can_plant2_manufacture', 'can_shipping',
+                'can_label', 'can_inventory', 'can_quality', 'can_user_management',
+                'created_at', 'updated_at'
               ],
             },
           ],
@@ -60,84 +61,49 @@ function requirePermission(permissionName) {
           });
         }
 
-        // Role이 include로 조회되지 않았으면 Role ID로 직접 조회
-        if (!user.UserProfile.Role && user.UserProfile.role) {
-          role = await Role.findByPk(user.UserProfile.role, {
-            // 모든 권한 필드를 명시적으로 포함
-            attributes: [
-              'id', 'name', 'display_name', 'description', 'is_system', 'is_default',
-              'can_basic_info', 'can_receiving', 'can_plant1_preprocess',
-              'can_plant_transfer', 'can_plant2_manufacture', 'can_shipping',
-              'can_label', 'can_inventory', 'can_quality', 'can_user_management',
-              'created_at', 'updated_at'
-            ],
-          });
-          
-          if (!role) {
-            console.error(`[Permission] Role not found: roleId=${user.UserProfile.role}, userId=${userId}`);
-            return res.status(403).json({
-              ok: false,
-              message: "역할을 찾을 수 없습니다",
-            });
-          }
-        } else {
-          role = user.UserProfile.Role;
-          
-          // Role이 있지만 권한 필드가 없는 경우 다시 조회
-          if (role && (!role.hasOwnProperty('can_basic_info') && !role.dataValues?.can_basic_info)) {
-            role = await Role.findByPk(role.id, {
-              attributes: [
-                'id', 'name', 'display_name', 'description', 'is_system', 'is_default',
-                'can_basic_info', 'can_receiving', 'can_plant1_preprocess',
-                'can_plant_transfer', 'can_plant2_manufacture', 'can_shipping',
-                'can_label', 'can_inventory', 'can_quality', 'can_user_management',
-                'created_at', 'updated_at'
-              ],
-            });
-          }
-        }
+        userProfile = user.UserProfile;
 
         req.user = {
           id: user.id,
           profile_id: user.profile_id,
-          profile: user.UserProfile,
-          role: role,
+          profile: userProfile,
         };
       } else {
-        role = req.user.role;
+        userProfile = req.user.profile;
         
-        // Role이 있지만 권한 필드가 없는 경우 다시 조회
-        if (role && role.id && (!role.hasOwnProperty('can_basic_info') && !role.dataValues?.can_basic_info)) {
-          role = await Role.findByPk(role.id, {
+        // UserProfile이 있지만 권한 필드가 없는 경우 다시 조회
+        if (userProfile && (!userProfile.hasOwnProperty('can_basic_info') && !userProfile.dataValues?.can_basic_info)) {
+          userProfile = await UserProfile.findByPk(userProfile.id, {
             attributes: [
-              'id', 'name', 'display_name', 'description', 'is_system', 'is_default',
+              'id', 'full_name', 'phone_number', 'email', 'hire_date', 
+              'position', 'department', 'role',
               'can_basic_info', 'can_receiving', 'can_plant1_preprocess',
               'can_plant_transfer', 'can_plant2_manufacture', 'can_shipping',
               'can_label', 'can_inventory', 'can_quality', 'can_user_management',
               'created_at', 'updated_at'
             ],
           });
-          req.user.role = role;
+          req.user.profile = userProfile;
         }
       }
 
-      // Role이 없으면 기본 권한 없음
-      if (!role) {
-        console.error(`[Permission] Role is null: userId=${userId}, profileId=${req.user?.profile_id}`);
+      // UserProfile이 없으면 기본 권한 없음
+      if (!userProfile) {
+        console.error(`[Permission] UserProfile is null: userId=${userId}, profileId=${req.user?.profile_id}`);
         return res.status(403).json({
           ok: false,
-          message: "권한이 없습니다 (Role이 설정되지 않았습니다)",
+          message: "권한이 없습니다 (사용자 프로필이 설정되지 않았습니다)",
         });
       }
 
-      // 권한 체크 (Sequelize 모델 인스턴스의 경우 dataValues 또는 직접 접근)
-      const roleData = role.dataValues || role;
-      const hasPermission = roleData[permissionName] === true || roleData[permissionName] === 1;
+      // 권한 체크 (UserProfile의 권한 필드를 직접 체크)
+      const profileData = userProfile.dataValues || userProfile;
+      const hasPermission = profileData[permissionName] === true || profileData[permissionName] === 1;
       
       // 디버깅 로그
       if (!hasPermission) {
-        console.warn(`[Permission] Permission denied: userId=${userId}, roleId=${roleData.id}, roleName=${roleData.name}, permission=${permissionName}, value=${roleData[permissionName]}`);
-        console.warn(`[Permission] Role data:`, JSON.stringify(roleData, null, 2));
+        console.warn(`[Permission] Permission denied: userId=${userId}, profileId=${profileData.id}, userName=${profileData.full_name}, permission=${permissionName}, value=${profileData[permissionName]}`);
+        console.warn(`[Permission] UserProfile data:`, JSON.stringify(profileData, null, 2));
       }
 
       if (!hasPermission) {
@@ -145,11 +111,12 @@ function requirePermission(permissionName) {
           ok: false,
           message: `'${permissionName}' 권한이 없습니다`,
           debug: {
-            roleId: roleData.id,
-            roleName: roleData.name,
+            userId: userId,
+            profileId: profileData.id,
+            userName: profileData.full_name,
             permission: permissionName,
             hasPermission: false,
-            permissionValue: roleData[permissionName],
+            permissionValue: profileData[permissionName],
           },
         });
       }

@@ -81,16 +81,19 @@ exports.destroy = async (req, res, next) => {
 };
 
 /**
- * 권한 업데이트 (단일 권한)
+ * 권한 업데이트 (단일 권한, 사용자별)
  * PUT /api/roles/:id/permissions/:permissionName
+ * 주의: :id는 User ID를 의미합니다 (기존 API 주소 유지)
  */
 exports.updatePermission = async (req, res, next) => {
   try {
-    const { id, permissionName } = req.params;
+    const { id, permissionName } = req.params; // id는 User ID
     const { value } = req.body;
     
-    const role = await roleService.updatePermission(id, permissionName, value);
-    res.json({ ok: true, data: role });
+    const authService = require("../services/authService");
+    const permissions = { [permissionName]: value };
+    const user = await authService.updateUserPermissions(req, id, permissions);
+    res.json({ ok: true, data: user });
   } catch (error) {
     if (error.status === 404) {
       return res.status(404).json({ ok: false, message: error.message });
@@ -103,16 +106,18 @@ exports.updatePermission = async (req, res, next) => {
 };
 
 /**
- * 권한 일괄 업데이트
+ * 권한 일괄 업데이트 (사용자별)
  * PUT /api/roles/:id/permissions
+ * 주의: :id는 User ID를 의미합니다 (기존 API 주소 유지)
  */
 exports.updatePermissions = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // User ID
     const permissions = req.body;
     
-    const role = await roleService.updatePermissions(id, permissions);
-    res.json({ ok: true, data: role });
+    const authService = require("../services/authService");
+    const user = await authService.updateUserPermissions(req, id, permissions);
+    res.json({ ok: true, data: user });
   } catch (error) {
     if (error.status === 404) {
       return res.status(404).json({ ok: false, message: error.message });

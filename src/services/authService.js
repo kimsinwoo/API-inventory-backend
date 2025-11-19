@@ -17,13 +17,21 @@ const { createSession } = require("../utils/sessionAuth");
 async function loginUser(req, username, password) {
   const db = req.app.get("db");
   
-  // 사용자 조회 (프로필 포함)
+  // 사용자 조회 (프로필 포함, 권한 필드 포함)
   const user = await db.User.findOne({ 
     where: { id: username },
     include: [
       {
         model: db.UserProfile,
         as: "UserProfile",
+        attributes: [
+          'id', 'full_name', 'phone_number', 'email', 'hire_date', 
+          'position', 'department', 'role',
+          'can_basic_info', 'can_receiving', 'can_plant1_preprocess',
+          'can_plant_transfer', 'can_plant2_manufacture', 'can_shipping',
+          'can_label', 'can_inventory', 'can_quality', 'can_user_management',
+          'created_at', 'updated_at'
+        ],
       },
     ],
   });
@@ -105,66 +113,9 @@ async function signupUser(req, {
   const userCount = await db.User.count();
   const isFirstUser = userCount === 0;
 
-  let roleId;
+  // 기본 Role ID 설정 (하위 호환성 유지)
+  let roleId = 1; // 기본 Role ID
   
-  if (isFirstUser) {
-    // 첫 번째 사용자: 모든 권한이 활성화된 Role 생성 또는 찾기
-    let adminRole = await db.Role.findOne({ 
-      where: { name: "ADMIN" } 
-    });
-    
-    if (!adminRole) {
-      // ADMIN Role이 없으면 생성
-      adminRole = await db.Role.create({
-        name: "ADMIN",
-        display_name: "관리자",
-        description: "시스템 관리자 (모든 권한)",
-        is_system: true,
-        is_default: false,
-        can_basic_info: true,
-        can_receiving: true,
-        can_plant1_preprocess: true,
-        can_plant_transfer: true,
-        can_plant2_manufacture: true,
-        can_shipping: true,
-        can_label: true,
-        can_inventory: true,
-        can_quality: true,
-        can_user_management: true,
-      });
-    }
-    
-    roleId = adminRole.id;
-  } else {
-    // 그 이후 사용자: 권한이 없는 Role 생성 또는 찾기
-    let guestRole = await db.Role.findOne({ 
-      where: { name: "GUEST" } 
-    });
-    
-    if (!guestRole) {
-      // GUEST Role이 없으면 생성
-      guestRole = await db.Role.create({
-        name: "GUEST",
-        display_name: "게스트",
-        description: "권한이 없는 기본 사용자",
-        is_system: false,
-        is_default: true,
-        can_basic_info: false,
-        can_receiving: false,
-        can_plant1_preprocess: false,
-        can_plant_transfer: false,
-        can_plant2_manufacture: false,
-        can_shipping: false,
-        can_label: false,
-        can_inventory: false,
-        can_quality: false,
-        can_user_management: false,
-      });
-    }
-    
-    roleId = guestRole.id;
-  }
-
   // role 파라미터가 제공되면 그것을 우선 사용
   if (role !== undefined && role !== null) {
     // 제공된 role이 유효한 Role ID인지 확인
@@ -174,16 +125,44 @@ async function signupUser(req, {
     }
   }
 
-  // 사용자 프로필 생성
-  const userProfile = await db.UserProfile.create({
+  // 사용자 프로필 생성 (권한 필드 포함)
+  const profileData = {
     full_name,
     phone_number,
     email,
     hire_date: hire_date || null,
     position: position || null,
     department: department || null,
-    role: roleId, // Role ID 할당
-  });
+    role: roleId, // Role ID 할당 (하위 호환성 유지)
+  };
+
+  // 첫 번째 사용자: 모든 권한 활성화
+  if (isFirstUser) {
+    profileData.can_basic_info = true;
+    profileData.can_receiving = true;
+    profileData.can_plant1_preprocess = true;
+    profileData.can_plant_transfer = true;
+    profileData.can_plant2_manufacture = true;
+    profileData.can_shipping = true;
+    profileData.can_label = true;
+    profileData.can_inventory = true;
+    profileData.can_quality = true;
+    profileData.can_user_management = true;
+  } else {
+    // 그 이후 사용자: 모든 권한 비활성화 (기본값)
+    profileData.can_basic_info = false;
+    profileData.can_receiving = false;
+    profileData.can_plant1_preprocess = false;
+    profileData.can_plant_transfer = false;
+    profileData.can_plant2_manufacture = false;
+    profileData.can_shipping = false;
+    profileData.can_label = false;
+    profileData.can_inventory = false;
+    profileData.can_quality = false;
+    profileData.can_user_management = false;
+  }
+
+  const userProfile = await db.UserProfile.create(profileData);
 
   // 비밀번호 해싱 (보안을 위해 10 라운드)
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -211,6 +190,14 @@ async function getAllUsers(req) {
       {
         model: db.UserProfile,
         as: "UserProfile",
+        attributes: [
+          'id', 'full_name', 'phone_number', 'email', 'hire_date', 
+          'position', 'department', 'role',
+          'can_basic_info', 'can_receiving', 'can_plant1_preprocess',
+          'can_plant_transfer', 'can_plant2_manufacture', 'can_shipping',
+          'can_label', 'can_inventory', 'can_quality', 'can_user_management',
+          'created_at', 'updated_at'
+        ],
       },
     ],
     attributes: { exclude: ['password'] }, // 비밀번호 제외
@@ -243,6 +230,14 @@ async function getUserById(req, id) {
       {
         model: db.UserProfile,
         as: "UserProfile",
+        attributes: [
+          'id', 'full_name', 'phone_number', 'email', 'hire_date', 
+          'position', 'department', 'role',
+          'can_basic_info', 'can_receiving', 'can_plant1_preprocess',
+          'can_plant_transfer', 'can_plant2_manufacture', 'can_shipping',
+          'can_label', 'can_inventory', 'can_quality', 'can_user_management',
+          'created_at', 'updated_at'
+        ],
       },
     ],
     attributes: { exclude: ['password'] }, // 비밀번호 제외
@@ -444,6 +439,58 @@ async function deleteUser(req, id) {
 //   return user.UserProfile.signature_image_path || null;
 // }
 
+/**
+ * 사용자 권한 일괄 업데이트
+ * @param {Object} req - Express 요청 객체
+ * @param {string} userId - 사용자 ID
+ * @param {Object} permissions - 권한 객체 (예: { can_basic_info: true, can_receiving: false })
+ * @returns {Promise<Object>} 업데이트된 사용자 정보
+ * @throws {Error} 사용자를 찾을 수 없는 경우
+ */
+async function updateUserPermissions(req, userId, permissions) {
+  const db = req.app.get("db");
+  
+  const user = await db.User.findByPk(userId, { 
+    include: [
+      {
+        model: db.UserProfile,
+        as: "UserProfile",
+      },
+    ],
+  });
+  
+  if (!user || !user.UserProfile) {
+    const error = new Error("사용자를 찾을 수 없습니다");
+    error.status = 404;
+    throw error;
+  }
+
+  const validPermissions = [
+    "can_basic_info",
+    "can_receiving",
+    "can_plant1_preprocess",
+    "can_plant_transfer",
+    "can_plant2_manufacture",
+    "can_shipping",
+    "can_label",
+    "can_inventory",
+    "can_quality",
+    "can_user_management",
+  ];
+
+  const updateData = {};
+  for (const [key, value] of Object.entries(permissions)) {
+    if (validPermissions.includes(key)) {
+      updateData[key] = value === true || value === "true" || value === 1;
+    }
+  }
+
+  await user.UserProfile.update(updateData);
+
+  // 업데이트된 사용자 정보 반환
+  return getUserById(req, userId);
+}
+
 module.exports = {
   loginUser,
   logoutUser,
@@ -452,6 +499,7 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
+  updateUserPermissions,
   // updateUserSignature,
   // getUserSignature,
 };

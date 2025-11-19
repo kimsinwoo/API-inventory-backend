@@ -127,7 +127,7 @@ exports.updatePermissions = async (id, permissions) => {
     "can_label",
     "can_inventory",
     "can_quality",
-    "can_user_management",
+    "can_user_management"
   ];
 
   const updateData = {};
