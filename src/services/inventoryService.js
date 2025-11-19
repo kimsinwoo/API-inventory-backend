@@ -377,12 +377,18 @@ exports.remove = async (id) => {
  * 🔹 재고 이동 이력
  * =============================== */
 exports.movements = async ({ itemId, factoryId, from, to, page = 1, limit = 20 }) => {
+  // 쿼리 파라미터는 문자열로 전달되므로 숫자로 변환
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 20;
+  const itemIdNum = itemId ? Number(itemId) : null;
+  const factoryIdNum = factoryId ? Number(factoryId) : null;
+
   const where = {};
-  if (itemId) where.item_id = itemId;
+  if (itemIdNum) where.item_id = itemIdNum;
   if (from) where.occurred_at = { [Op.gte]: new Date(from) };
   if (to) where.occurred_at = { ...(where.occurred_at ?? {}), [Op.lte]: new Date(to) };
-  if (factoryId) {
-    where[Op.or] = [{ from_factory_id: factoryId }, { to_factory_id: factoryId }];
+  if (factoryIdNum) {
+    where[Op.or] = [{ from_factory_id: factoryIdNum }, { to_factory_id: factoryIdNum }];
   }
 
   const { rows, count } = await InventoryMovement.findAndCountAll({
@@ -393,8 +399,8 @@ exports.movements = async ({ itemId, factoryId, from, to, page = 1, limit = 20 }
       { model: Factory, as: "toFactory", attributes: ["id", "name"] },
     ],
     order: [["occurred_at", "DESC"], ["id", "DESC"]],
-    offset: (page - 1) * limit,
-    limit,
+    offset: (pageNum - 1) * limitNum,
+    limit: limitNum,
   });
 
   const korType = (t) =>
@@ -413,5 +419,5 @@ exports.movements = async ({ itemId, factoryId, from, to, page = 1, limit = 20 }
     note: r.note ?? "",
   }));
 
-  return { items: data, meta: { page, limit, total: count } };
+  return { items: data, meta: { page: pageNum, limit: limitNum, total: count, totalPages: Math.ceil(count / limitNum) } };
 };

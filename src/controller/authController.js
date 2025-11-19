@@ -74,11 +74,23 @@ async function getMe(req, res) {
       });
     }
     
+    // 서명 이미지 URL 추가
+    const profile = user.profile || user.UserProfile || {};
+    let signatureImageUrl = null;
+    if (profile.signature_image_path) {
+      const pathParts = profile.signature_image_path.split('/');
+      const fileName = pathParts[pathParts.length - 1];
+      signatureImageUrl = `/api/static/signatures/${fileName}`;
+    }
+
     res.json({ 
       message: "사용자 정보 조회 성공", 
       user: {
         id: user.id,
-        profile: user.UserProfile
+        profile: {
+          ...profile,
+          signature_image_url: signatureImageUrl,
+        }
       }
     });
   } catch (error) {
@@ -197,6 +209,7 @@ async function updateUser(req, res) {
       position,
       department,
       role,
+      signature_image_path,
     } = req.body;
     
     const user = await authService.updateUser(req, id, {
@@ -207,6 +220,7 @@ async function updateUser(req, res) {
       position,
       department,
       role,
+      signature_image_path,
     });
     
     res.json({ 
@@ -238,6 +252,91 @@ async function deleteUser(req, res) {
   }
 }
 
+/**
+ * 도장(서명) 이미지 업로드
+ */
+async function uploadSignature(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        ok: false,
+        message: "도장 이미지 파일을 업로드해주세요"
+      });
+    }
+
+    const userId = req.user?.id || req.session.userId;
+    if (!userId) {
+      return res.status(401).json({
+        ok: false,
+        message: "로그인이 필요합니다"
+      });
+    }
+
+    // 상대 경로로 저장 (uploads/signatures/...)
+    const path = require("path");
+    const relativePath = path.relative(path.join(__dirname, "../../"), req.file.path).replace(/\\/g, "/");
+    const user = await authService.updateUserSignature(req, userId, relativePath);
+
+    // 서명 이미지 URL 생성
+    let signatureImageUrl = null;
+    if (user.UserProfile?.signature_image_path) {
+      const pathParts = user.UserProfile.signature_image_path.split('/');
+      const fileName = pathParts[pathParts.length - 1];
+      signatureImageUrl = `/api/static/signatures/${fileName}`;
+    }
+
+    res.json({
+      ok: true,
+      message: "도장이 성공적으로 업로드되었습니다",
+      data: {
+        signatureImagePath: user.UserProfile.signature_image_path,
+        signatureImageUrl: signatureImageUrl
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      ok: false,
+      message: error.message
+    });
+  }
+}
+
+/**
+ * 도장(서명) 이미지 조회
+ */
+async function getSignature(req, res) {
+  try {
+    const userId = req.user?.id || req.session.userId;
+    if (!userId) {
+      return res.status(401).json({
+        ok: false,
+        message: "로그인이 필요합니다"
+      });
+    }
+
+    const signaturePath = await authService.getUserSignature(req, userId);
+
+    if (!signaturePath) {
+      return res.status(404).json({
+        ok: false,
+        message: "도장이 등록되지 않았습니다"
+      });
+    }
+
+    res.json({
+      ok: true,
+      data: {
+        signatureImagePath: signaturePath
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      ok: false,
+      message: error.message
+    });
+  }
+}
+
 module.exports = {
   login,
   logout,
@@ -247,4 +346,6 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
+  uploadSignature,
+  getSignature,
 };

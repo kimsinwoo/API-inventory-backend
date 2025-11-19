@@ -10,6 +10,8 @@ const router = express.Router();
 const orderImportController = require('../controller/orderImportController');
 const { uploadSingle, uploadMultiple, handleUploadError } = require('../middleware/uploadMiddleware');
 const asyncHandler = require('../middleware/asyncHandler');
+const { authenticate } = require("../utils/sessionAuth");
+const { requirePermission } = require("../middleware/permissionMiddleware");
 
 /**
  * @route   POST /api/order-import/upload
@@ -18,6 +20,8 @@ const asyncHandler = require('../middleware/asyncHandler');
  */
 router.post(
   '/upload',
+  authenticate,
+  requirePermission("can_shipping"),
   uploadSingle,
   handleUploadError,
   asyncHandler(orderImportController.uploadSingleFile)
@@ -30,6 +34,8 @@ router.post(
  */
 router.post(
   '/upload-multiple',
+  authenticate,
+  requirePermission("can_shipping"),
   uploadMultiple,
   handleUploadError,
   asyncHandler(orderImportController.uploadMultipleFiles)
@@ -42,6 +48,8 @@ router.post(
  */
 router.post(
   '/upload-cj',
+  authenticate,
+  requirePermission("can_shipping"),
   uploadMultiple,
   handleUploadError,
   asyncHandler(orderImportController.uploadAndConvertToCJ)
@@ -54,6 +62,8 @@ router.post(
  */
 router.get(
   '/download/:filename',
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(orderImportController.downloadFile)
 );
 
@@ -64,6 +74,8 @@ router.get(
  */
 router.get(
   '/files',
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(orderImportController.getUploadedFiles)
 );
 
@@ -74,6 +86,8 @@ router.get(
  */
 router.delete(
   '/files/:filename',
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(orderImportController.deleteFile)
 );
 

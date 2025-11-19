@@ -5,6 +5,7 @@ const { Router } = require("express");
 const ctrl = require("../controller/workOrderController");
 const vr = require("../middleware/validateWorkOrder");
 const { authenticate } = require("../utils/sessionAuth");
+const { requirePermission } = require("../middleware/permissionMiddleware");
 
 const router = Router();
 
@@ -15,7 +16,8 @@ const router = Router();
 // 작업 지시서 생성
 router.post(
   "/",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateCreateWorkOrder,
   ctrl.create
 );
@@ -23,7 +25,8 @@ router.post(
 // 작업 지시서 목록 조회
 router.get(
   "/",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateListWorkOrders,
   ctrl.list
 );
@@ -31,7 +34,8 @@ router.get(
 // 통계 조회
 router.get(
   "/stats",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateWorkOrderStats,
   ctrl.stats
 );
@@ -39,7 +43,8 @@ router.get(
 // 작업 지시서 상세 조회
 router.get(
   "/:id",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateWorkOrderId,
   ctrl.detail
 );
@@ -47,7 +52,8 @@ router.get(
 // 작업 지시서 수정
 router.put(
   "/:id",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateWorkOrderId,
   vr.validateUpdateWorkOrder,
   ctrl.update
@@ -56,7 +62,8 @@ router.put(
 // 작업 지시서 삭제
 router.delete(
   "/:id",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateWorkOrderId,
   ctrl.remove
 );
@@ -68,7 +75,8 @@ router.delete(
 // 작업 시작
 router.post(
   "/:id/start",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateWorkOrderId,
   ctrl.start
 );
@@ -76,7 +84,8 @@ router.post(
 // 생산 완료 처리
 router.post(
   "/:id/complete",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateWorkOrderId,
   vr.validateCompleteWorkOrder,
   ctrl.complete
@@ -85,7 +94,8 @@ router.post(
 // 작업 취소
 router.post(
   "/:id/cancel",
-  // authenticate, // 임시로 인증 비활성화 (개발용)
+  authenticate,
+  requirePermission("can_plant2_manufacture"),
   vr.validateWorkOrderId,
   vr.validateCancelWorkOrder,
   ctrl.cancel

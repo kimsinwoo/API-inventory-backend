@@ -5,6 +5,7 @@ const { Router } = require("express");
 const ctrl = require("../controller/warehouseTransferController");
 const vr = require("../middleware/validateWarehouseTransfer");
 const { authenticate } = require("../utils/sessionAuth");
+const { requirePermission } = require("../middleware/permissionMiddleware");
 
 const router = Router();
 
@@ -16,6 +17,7 @@ const router = Router();
 router.post(
   "/",
   authenticate,
+  requirePermission("can_plant_transfer"),
   vr.validateTransfer,
   ctrl.transfer
 );
@@ -24,6 +26,7 @@ router.post(
 router.get(
   "/history",
   authenticate,
+  requirePermission("can_plant_transfer"),
   vr.validateHistory,
   ctrl.history
 );
@@ -32,6 +35,7 @@ router.get(
 router.get(
   "/path-stats",
   authenticate,
+  requirePermission("can_plant_transfer"),
   vr.validatePathStats,
   ctrl.pathStats
 );

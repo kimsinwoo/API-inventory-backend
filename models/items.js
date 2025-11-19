@@ -21,7 +21,7 @@ module.exports = (sequelize) => {
         allowNull: false,
       },
       unit: {
-        type: DataTypes.ENUM("kg", "g", "EA", "BOX", "PCS"),
+        type: DataTypes.ENUM("kg", "g", "L", "EA", "BOX", "PCS", "ROLL"),
         allowNull: false,
         defaultValue: "kg",
       },

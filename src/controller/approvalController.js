@@ -4,6 +4,28 @@ module.exports = (models) => {
   const svc = require("../services/approvalService")(models);
 
   return {
+    create: async (req, res) => {
+      const me = req.user;
+      const { formCode, title, payload, attachments } = req.body || {};
+
+      if (!formCode) {
+        return res.status(400).json({ ok: false, message: "formCode는 필수입니다." });
+      }
+
+      try {
+        const approval = await svc.create({
+          formCode,
+          title,
+          payload: payload || {},
+          createdByUserId: me.id,
+          attachments: attachments || [],
+        });
+        return res.status(201).json({ ok: true, message: "결재가 생성되었습니다", data: approval });
+      } catch (error) {
+        return res.status(400).json({ ok: false, message: error.message });
+      }
+    },
+
     inbox: async (req, res) => {
       const me = req.user;
       const list = await svc.inbox(me.id, me.roleCode);
@@ -22,7 +44,17 @@ module.exports = (models) => {
     approve: async (req, res) => {
       const me = req.user;
       const approvalId = Number(req.params.id);
-      const { signatureImagePath, comment } = req.body || {};
+      let { signatureImagePath, comment, useDefaultSignature } = req.body || {};
+      
+      // useDefaultSignature가 true이고 signatureImagePath가 없으면 사용자의 기본 도장 사용
+      if (useDefaultSignature && !signatureImagePath) {
+        const authSvc = require("../services/authService");
+        const userSignature = await authSvc.getUserSignature(req, me.id);
+        if (userSignature) {
+          signatureImagePath = userSignature;
+        }
+      }
+      
       await svc.approve({ approvalId, actorUserId: me.id, actorRoleCode: me.roleCode, signatureImagePath, comment });
       return res.json({ ok: true });
     },

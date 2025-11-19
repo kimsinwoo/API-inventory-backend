@@ -7,6 +7,8 @@ const router = express.Router();
 const shippingController = require("../controller/shippingController");
 const { uploadMultiple } = require("../middleware/uploadMiddleware");
 const asyncHandler = require("../middleware/asyncHandler");
+const { authenticate } = require("../utils/sessionAuth");
+const { requirePermission } = require("../middleware/permissionMiddleware");
 
 /* ===============================
  * 📦 주문서 업로드 및 관리
@@ -19,6 +21,8 @@ const asyncHandler = require("../middleware/asyncHandler");
  */
 router.post(
   "/upload-orders",
+  authenticate,
+  requirePermission("can_shipping"),
   uploadMultiple,
   asyncHandler(shippingController.uploadOrders)
 );
@@ -30,6 +34,8 @@ router.post(
  */
 router.get(
   "/orders",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.getOrders)
 );
 
@@ -40,6 +46,8 @@ router.get(
  */
 router.get(
   "/orders/:id",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.getOrderDetail)
 );
 
@@ -50,6 +58,8 @@ router.get(
  */
 router.put(
   "/orders/:id",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.updateOrder)
 );
 
@@ -60,6 +70,8 @@ router.put(
  */
 router.delete(
   "/orders/:id",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.deleteOrder)
 );
 
@@ -74,6 +86,8 @@ router.delete(
  */
 router.post(
   "/export/cj-logistics",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.exportToCJLogistics)
 );
 
@@ -84,6 +98,8 @@ router.post(
  */
 router.get(
   "/download/:filename",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.downloadFile)
 );
 
@@ -98,6 +114,8 @@ router.get(
  */
 router.post(
   "/issue-list/generate",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.generateIssueList)
 );
 
@@ -108,6 +126,8 @@ router.post(
  */
 router.get(
   "/issue-list/:id/export",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.exportIssueList)
 );
 
@@ -118,6 +138,8 @@ router.get(
  */
 router.post(
   "/issue-list/:id/process",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.processIssue)
 );
 
@@ -132,6 +154,8 @@ router.post(
  */
 router.post(
   "/tracking-numbers/bulk",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.bulkUpdateTrackingNumbers)
 );
 
@@ -142,6 +166,8 @@ router.post(
  */
 router.post(
   "/tracking-numbers/upload",
+  authenticate,
+  requirePermission("can_shipping"),
   uploadMultiple,
   asyncHandler(shippingController.uploadTrackingNumbers)
 );
@@ -157,6 +183,8 @@ router.post(
  */
 router.get(
   "/batches",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.getBatches)
 );
 
@@ -167,6 +195,8 @@ router.get(
  */
 router.get(
   "/batches/:id",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.getBatchDetail)
 );
 
@@ -177,6 +207,8 @@ router.get(
  */
 router.post(
   "/batches/:id/confirm",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.confirmBatch)
 );
 
@@ -187,6 +219,8 @@ router.post(
  */
 router.delete(
   "/batches/:id",
+  authenticate,
+  requirePermission("can_shipping"),
   asyncHandler(shippingController.deleteBatch)
 );
 

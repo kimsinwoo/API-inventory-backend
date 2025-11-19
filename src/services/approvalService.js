@@ -146,5 +146,60 @@ module.exports = (models) => {
     return rows;
   }
 
-  return { getPayload, createTasksFromTemplates, openNextStep, approve, reject, inbox };
+  async function create({ formCode, title, payload, createdByUserId, attachments }) {
+    return await models.Approval.sequelize.transaction(async (tx) => {
+      // 결재 생성
+      const approval = await models.Approval.create(
+        {
+          form_code: formCode,
+          title: title || null,
+          created_by_user_id: createdByUserId,
+          status: "PENDING",
+          current_order: 1,
+        },
+        { transaction: tx }
+      );
+
+      // 결재 데이터 저장
+      await models.ApprovalData.create(
+        {
+          approval_id: approval.id,
+          payload: payload || {},
+        },
+        { transaction: tx }
+      );
+
+      // 첨부 파일 저장
+      if (attachments && attachments.length > 0) {
+        for (const att of attachments) {
+          await models.Attachment.create(
+            {
+              approval_id: approval.id,
+              kind: att.kind || "other",
+              path: att.path,
+              original_name: att.originalName || att.original_name || null,
+              meta: att.meta || null,
+            },
+            { transaction: tx }
+          );
+        }
+      }
+
+      // 결재 태스크 생성
+      await createTasksFromTemplates({ approval, tx });
+
+      // 첫 번째 단계 시작
+      await openNextStep(approval.id, createdByUserId, tx);
+
+      // 생성된 결재 조회 (관계 포함)
+      const createdApproval = await models.Approval.findByPk(approval.id, {
+        include: [{ model: models.ApprovalTask }, { model: models.ApprovalData }, { model: models.Attachment }],
+        transaction: tx,
+      });
+
+      return createdApproval;
+    });
+  }
+
+  return { getPayload, createTasksFromTemplates, openNextStep, approve, reject, inbox, create };
 };

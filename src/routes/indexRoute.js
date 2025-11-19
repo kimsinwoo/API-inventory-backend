@@ -7,6 +7,7 @@ const router = Router();
 // 기존 라우트
 router.use("/approval", require("./approvalRoute"));
 router.use("/auth", require("./authRoute"));
+router.use("/roles", require("./roleRoute"));
 router.use("/processes", require("./processRoute"));
 router.use("/factories", require("./factoryRoute"));
 router.use("/items", require("./itemRoute"));

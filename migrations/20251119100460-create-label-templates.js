@@ -7,11 +7,16 @@ module.exports = {
         type: Sequelize.INTEGER.UNSIGNED,
         autoIncrement: true,
         primaryKey: true,
-        allowNull: false,
       },
       item_id: {
         type: Sequelize.INTEGER.UNSIGNED,
         allowNull: true,
+        references: {
+          model: "Items",
+          key: "id",
+        },
+        onUpdate: "CASCADE",
+        onDelete: "SET NULL",
       },
       item_name: {
         type: Sequelize.STRING(100),
@@ -45,10 +50,6 @@ module.exports = {
         type: Sequelize.STRING(50),
         allowNull: true,
       },
-      html_content: {
-        type: Sequelize.TEXT("long"),
-        allowNull: true,
-      },
       printer_name: {
         type: Sequelize.STRING(150),
         allowNull: true,
@@ -70,18 +71,16 @@ module.exports = {
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn("NOW"),
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       updated_at: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn("NOW"),
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
       },
     });
 
-    await queryInterface.addIndex("LabelTemplates", ["item_id"]);
-    await queryInterface.addIndex("LabelTemplates", ["registration_number"]);
-    await queryInterface.addIndex("LabelTemplates", ["created_at"]);
+    // item_id는 외래 키로 추가되므로 자동으로 인덱스가 생성됨
   },
 
   async down(queryInterface) {

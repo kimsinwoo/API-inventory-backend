@@ -5,14 +5,12 @@ module.exports = {
     await queryInterface.createTable("Labels", {
       id: {
         type: Sequelize.INTEGER.UNSIGNED,
-        allowNull: false,
         autoIncrement: true,
         primaryKey: true,
       },
       inventory_id: {
         type: Sequelize.INTEGER.UNSIGNED,
         allowNull: false,
-        comment: "재고 ID",
         references: {
           model: "Inventories",
           key: "id",
@@ -28,7 +26,6 @@ module.exports = {
       item_id: {
         type: Sequelize.INTEGER.UNSIGNED,
         allowNull: false,
-        comment: "품목 ID",
         references: {
           model: "Items",
           key: "id",
@@ -80,20 +77,27 @@ module.exports = {
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn("NOW"),
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       updated_at: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.fn("NOW"),
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
       },
     });
 
-    // 인덱스 추가
-    await queryInterface.addIndex("Labels", ["inventory_id"]);
-    await queryInterface.addIndex("Labels", ["barcode"]);
-    await queryInterface.addIndex("Labels", ["item_id"]);
-    await queryInterface.addIndex("Labels", ["created_at"]);
+    // inventory_id, item_id는 외래 키로 추가되므로 자동으로 인덱스가 생성됨
+    const addIndexSafe = async (tableName, fields, options = {}) => {
+      try {
+        await queryInterface.addIndex(tableName, fields, options);
+      } catch (error) {
+        if (!error.message.includes("Duplicate key name")) {
+          throw error;
+        }
+      }
+    };
+    
+    await addIndexSafe("Labels", ["barcode"]);
   },
 
   async down(queryInterface) {

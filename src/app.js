@@ -54,9 +54,17 @@ app.use(express.json({ limit: "10mb" })); // JSON 형식의 요청 본문 파싱
 app.use(express.urlencoded({ extended: true, limit: "10mb" })); // URL 인코딩된 데이터 파싱
 
 app.use(
-  'api/static/labels',
+  '/api/static/labels',
   require('express').static(
     path.resolve(process.cwd(), appConfig.printer.pdfSavePath)
+  )
+);
+
+// 도장 이미지 정적 파일 서빙
+app.use(
+  '/api/static/signatures',
+  require('express').static(
+    path.resolve(process.cwd(), 'uploads/signatures')
   )
 );
 
