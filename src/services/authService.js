@@ -40,20 +40,20 @@ async function loginUser(req, username, password) {
   // 세션 생성
   await createSession(req, user);
 
-  // 서명 이미지 URL 생성
-  let signatureImageUrl = null;
-  if (user.UserProfile?.signature_image_path) {
-    const pathParts = user.UserProfile.signature_image_path.split('/');
-    const fileName = pathParts[pathParts.length - 1];
-    signatureImageUrl = `/api/static/signatures/${fileName}`;
-  }
+  // 서명 이미지 URL 생성 (주석처리)
+  // let signatureImageUrl = null;
+  // if (user.UserProfile?.signature_image_path) {
+  //   const pathParts = user.UserProfile.signature_image_path.split('/');
+  //   const fileName = pathParts[pathParts.length - 1];
+  //   signatureImageUrl = `/api/static/signatures/${fileName}`;
+  // }
 
   return { 
     id: user.id, 
     username: user.id,
     profile: {
       ...user.UserProfile.toJSON(),
-      signature_image_url: signatureImageUrl,
+      // signature_image_url: signatureImageUrl,
     }
   };
 }
@@ -219,11 +219,12 @@ async function getAllUsers(req) {
   // 서명 이미지 URL 추가
   return users.map(user => {
     const userJson = user.toJSON();
-    if (userJson.UserProfile?.signature_image_path) {
-      const pathParts = userJson.UserProfile.signature_image_path.split('/');
-      const fileName = pathParts[pathParts.length - 1];
-      userJson.UserProfile.signature_image_url = `/api/static/signatures/${fileName}`;
-    }
+    // 서명 이미지 URL 생성 (주석처리)
+    // if (userJson.UserProfile?.signature_image_path) {
+    //   const pathParts = userJson.UserProfile.signature_image_path.split('/');
+    //   const fileName = pathParts[pathParts.length - 1];
+    //   userJson.UserProfile.signature_image_url = `/api/static/signatures/${fileName}`;
+    // }
     return userJson;
   });
 }
@@ -251,13 +252,13 @@ async function getUserById(req, id) {
     return null;
   }
 
-  // 서명 이미지 URL 추가
+  // 서명 이미지 URL 추가 (주석처리)
   const userJson = user.toJSON();
-  if (userJson.UserProfile?.signature_image_path) {
-    const pathParts = userJson.UserProfile.signature_image_path.split('/');
-    const fileName = pathParts[pathParts.length - 1];
-    userJson.UserProfile.signature_image_url = `/api/static/signatures/${fileName}`;
-  }
+  // if (userJson.UserProfile?.signature_image_path) {
+  //   const pathParts = userJson.UserProfile.signature_image_path.split('/');
+  //   const fileName = pathParts[pathParts.length - 1];
+  //   userJson.UserProfile.signature_image_url = `/api/static/signatures/${fileName}`;
+  // }
   
   return userJson;
 }
@@ -306,23 +307,24 @@ async function updateUser(req, id, {
     if (position !== undefined) updateFields.position = position;
     if (department !== undefined) updateFields.department = department;
     if (role !== undefined) updateFields.role = role;
-    if (signature_image_path !== undefined) {
-      // 기존 도장 파일이 있으면 삭제 (선택사항)
-      if (user.UserProfile.signature_image_path && signature_image_path !== user.UserProfile.signature_image_path) {
-        const fs = require("fs");
-        const path = require("path");
-        const oldPath = path.join(__dirname, "../../", user.UserProfile.signature_image_path);
-        try {
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-          }
-        } catch (err) {
-          // 파일 삭제 실패는 무시 (로깅만)
-          console.warn("기존 도장 파일 삭제 실패:", err.message);
-        }
-      }
-      updateFields.signature_image_path = signature_image_path;
-    }
+    // signature_image_path 업데이트 (주석처리)
+    // if (signature_image_path !== undefined) {
+    //   // 기존 도장 파일이 있으면 삭제 (선택사항)
+    //   if (user.UserProfile.signature_image_path && signature_image_path !== user.UserProfile.signature_image_path) {
+    //     const fs = require("fs");
+    //     const path = require("path");
+    //     const oldPath = path.join(__dirname, "../../", user.UserProfile.signature_image_path);
+    //     try {
+    //       if (fs.existsSync(oldPath)) {
+    //         fs.unlinkSync(oldPath);
+    //       }
+    //     } catch (err) {
+    //       // 파일 삭제 실패는 무시 (로깅만)
+    //       console.warn("기존 도장 파일 삭제 실패:", err.message);
+    //     }
+    //   }
+    //   updateFields.signature_image_path = signature_image_path;
+    // }
     
     await user.UserProfile.update(updateFields);
   }

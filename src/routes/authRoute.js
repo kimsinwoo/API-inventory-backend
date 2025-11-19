@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const authController = require("../controller/authController");
 const { authenticate } = require("../utils/sessionAuth");
-const { uploadSignature, handleUploadError } = require("../middleware/signatureUploadMiddleware");
+// const { uploadSignature, handleUploadError } = require("../middleware/signatureUploadMiddleware");
 
 const router = Router();
 

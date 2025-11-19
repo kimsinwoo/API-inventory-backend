@@ -74,14 +74,14 @@ async function getMe(req, res) {
       });
     }
     
-    // 서명 이미지 URL 추가
+    // 서명 이미지 URL 추가 (주석처리)
     const profile = user.profile || user.UserProfile || {};
-    let signatureImageUrl = null;
-    if (profile.signature_image_path) {
-      const pathParts = profile.signature_image_path.split('/');
-      const fileName = pathParts[pathParts.length - 1];
-      signatureImageUrl = `/api/static/signatures/${fileName}`;
-    }
+    // let signatureImageUrl = null;
+    // if (profile.signature_image_path) {
+    //   const pathParts = profile.signature_image_path.split('/');
+    //   const fileName = pathParts[pathParts.length - 1];
+    //   signatureImageUrl = `/api/static/signatures/${fileName}`;
+    // }
 
     res.json({ 
       message: "사용자 정보 조회 성공", 
@@ -89,7 +89,7 @@ async function getMe(req, res) {
         id: user.id,
         profile: {
           ...profile,
-          signature_image_url: signatureImageUrl,
+          // signature_image_url: signatureImageUrl,
         }
       }
     });
@@ -209,7 +209,7 @@ async function updateUser(req, res) {
       position,
       department,
       role,
-      signature_image_path,
+      // signature_image_path,
     } = req.body;
     
     const user = await authService.updateUser(req, id, {
@@ -220,7 +220,7 @@ async function updateUser(req, res) {
       position,
       department,
       role,
-      signature_image_path,
+      // signature_image_path,
     });
     
     res.json({ 
@@ -302,40 +302,40 @@ async function deleteUser(req, res) {
 // }
 
 /**
- * 도장(서명) 이미지 조회
+ * 도장(서명) 이미지 조회 (주석처리)
  */
-async function getSignature(req, res) {
-  try {
-    const userId = req.user?.id || req.session.userId;
-    if (!userId) {
-      return res.status(401).json({
-        ok: false,
-        message: "로그인이 필요합니다"
-      });
-    }
+// async function getSignature(req, res) {
+//   try {
+//     const userId = req.user?.id || req.session.userId;
+//     if (!userId) {
+//       return res.status(401).json({
+//         ok: false,
+//         message: "로그인이 필요합니다"
+//       });
+//     }
 
-    const signaturePath = await authService.getUserSignature(req, userId);
+//     const signaturePath = await authService.getUserSignature(req, userId);
 
-    if (!signaturePath) {
-      return res.status(404).json({
-        ok: false,
-        message: "도장이 등록되지 않았습니다"
-      });
-    }
+//     if (!signaturePath) {
+//       return res.status(404).json({
+//         ok: false,
+//         message: "도장이 등록되지 않았습니다"
+//       });
+//     }
 
-    res.json({
-      ok: true,
-      data: {
-        signatureImagePath: signaturePath
-      }
-    });
-  } catch (error) {
-    res.status(400).json({
-      ok: false,
-      message: error.message
-    });
-  }
-}
+//     res.json({
+//       ok: true,
+//       data: {
+//         signatureImagePath: signaturePath
+//       }
+//     });
+//   } catch (error) {
+//     res.status(400).json({
+//       ok: false,
+//       message: error.message
+//     });
+//   }
+// }
 
 module.exports = {
   login,
@@ -347,5 +347,5 @@ module.exports = {
   updateUser,
   deleteUser,
   // uploadSignature,
-  getSignature,
+  // getSignature,
 };

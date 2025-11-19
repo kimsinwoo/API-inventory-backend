@@ -60,13 +60,13 @@ app.use(
   )
 );
 
-// 도장 이미지 정적 파일 서빙
-app.use(
-  '/api/static/signatures',
-  require('express').static(
-    path.resolve(process.cwd(), 'uploads/signatures')
-  )
-);
+// 도장 이미지 정적 파일 서빙 (주석처리)
+// app.use(
+//   '/api/static/signatures',
+//   require('express').static(
+//     path.resolve(process.cwd(), 'uploads/signatures')
+//   )
+// );
 
 
 // 활동 로그 미들웨어 (헬스체크 제외)

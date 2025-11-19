@@ -46,14 +46,14 @@ module.exports = (models) => {
       const approvalId = Number(req.params.id);
       let { signatureImagePath, comment, useDefaultSignature } = req.body || {};
       
-      // useDefaultSignature가 true이고 signatureImagePath가 없으면 사용자의 기본 도장 사용
-      if (useDefaultSignature && !signatureImagePath) {
-        const authSvc = require("../services/authService");
-        const userSignature = await authSvc.getUserSignature(req, me.id);
-        if (userSignature) {
-          signatureImagePath = userSignature;
-        }
-      }
+      // useDefaultSignature가 true이고 signatureImagePath가 없으면 사용자의 기본 도장 사용 (주석처리)
+      // if (useDefaultSignature && !signatureImagePath) {
+      //   const authSvc = require("../services/authService");
+      //   const userSignature = await authSvc.getUserSignature(req, me.id);
+      //   if (userSignature) {
+      //     signatureImagePath = userSignature;
+      //   }
+      // }
       
       await svc.approve({ approvalId, actorUserId: me.id, actorRoleCode: me.roleCode, signatureImagePath, comment });
       return res.json({ ok: true });
