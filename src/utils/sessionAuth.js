@@ -37,16 +37,6 @@ async function createSession(req, user) {
  */
 async function authenticate(req, res, next) {
   try {
-    // Development 환경에서는 인증 건너뛰기
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Auth] Development 모드: 인증 건너뛰기');
-      // 더미 사용자 정보 설정 (선택사항)
-      if (!req.user) {
-        req.user = { id: 'dev-user', role: null };
-      }
-      return next();
-    }
-
     // 세션 존재 여부 확인
     if (!req.session || !req.session.userId) {
       return res.status(401).json({ 

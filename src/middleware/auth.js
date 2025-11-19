@@ -39,15 +39,6 @@ module.exports = (models) => {
 
   const requireAuth = async function (req, res, next) {
     try {
-      // Development 환경에서는 인증 건너뛰기
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Auth] Development 모드: requireAuth 건너뛰기');
-        if (!req.user) {
-          req.user = { id: 'dev-user', roleCode: 'CEO' };
-        }
-        return next();
-      }
-
       const auth = req.headers.authorization || "";
       if (!auth.startsWith("Bearer "))
         return res.status(401).json({ ok: false, message: "Unauthorized" });
@@ -67,15 +58,6 @@ module.exports = (models) => {
 
   const requireAdmin = async function (req, res, next) {
     try {
-      // Development 환경에서는 인증 건너뛰기
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Auth] Development 모드: requireAdmin 건너뛰기');
-        if (!req.user) {
-          req.user = { id: 'dev-user', roleCode: 'CEO' };
-        }
-        return next();
-      }
-
       const auth = req.headers.authorization || "";
       if (!auth.startsWith("Bearer "))
         return res.status(401).json({ ok: false, message: "Unauthorized" });
@@ -99,15 +81,6 @@ module.exports = (models) => {
 
   const requireUser = async function (req, res, next) {
     try {
-      // Development 환경에서는 인증 건너뛰기
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Auth] Development 모드: requireUser 건너뛰기');
-        if (!req.user) {
-          req.user = { id: 'dev-user', roleCode: 'CEO' };
-        }
-        return next();
-      }
-
       const auth = req.headers.authorization || "";
       if (!auth.startsWith("Bearer "))
         return res.status(401).json({ ok: false, message: "Unauthorized" });
@@ -126,15 +99,6 @@ module.exports = (models) => {
 
   const requireStaff = async function (req, res, next) {
     try {
-      // Development 환경에서는 인증 건너뛰기
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Auth] Development 모드: requireStaff 건너뛰기');
-        if (!req.user) {
-          req.user = { id: 'dev-user', roleCode: 'CEO' };
-        }
-        return next();
-      }
-
       const auth = req.headers.authorization || "";
       if (!auth.startsWith("Bearer "))
         return res.status(401).json({ ok: false, message: "Unauthorized" });
@@ -153,15 +117,6 @@ module.exports = (models) => {
 
   const requireTeamLead = async function (req, res, next) {
     try {
-      // Development 환경에서는 인증 건너뛰기
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Auth] Development 모드: requireTeamLead 건너뛰기');
-        if (!req.user) {
-          req.user = { id: 'dev-user', roleCode: 'CEO' };
-        }
-        return next();
-      }
-
       const auth = req.headers.authorization || "";
       if (!auth.startsWith("Bearer "))
         return res.status(401).json({ ok: false, message: "Unauthorized" });
@@ -184,15 +139,6 @@ module.exports = (models) => {
 
   const requireDirector = async function (req, res, next) {
     try {
-      // Development 환경에서는 인증 건너뛰기
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Auth] Development 모드: requireDirector 건너뛰기');
-        if (!req.user) {
-          req.user = { id: 'dev-user', roleCode: 'CEO' };
-        }
-        return next();
-      }
-
       const auth = req.headers.authorization || "";
       if (!auth.startsWith("Bearer "))
         return res.status(401).json({ ok: false, message: "Unauthorized" });
@@ -215,15 +161,6 @@ module.exports = (models) => {
 
   const requireCEO = async function (req, res, next) {
     try {
-      // Development 환경에서는 인증 건너뛰기
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Auth] Development 모드: requireCEO 건너뛰기');
-        if (!req.user) {
-          req.user = { id: 'dev-user', roleCode: 'CEO' };
-        }
-        return next();
-      }
-
       const auth = req.headers.authorization || "";
       if (!auth.startsWith("Bearer "))
         return res.status(401).json({ ok: false, message: "Unauthorized" });
