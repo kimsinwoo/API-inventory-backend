@@ -23,7 +23,7 @@ module.exports = (sequelize) => {
       temperature_range: { type: DataTypes.STRING(50) },
       humidity_range: { type: DataTypes.STRING(50) },
       applicable_items: {
-        type: DataTypes.STRING(100),
+        type: DataTypes.STRING(1000),
         allowNull: true,
       },
     },
