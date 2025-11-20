@@ -20,6 +20,10 @@ module.exports = {
         type: Sequelize.STRING(50),
         allowNull: true,
       },
+      applicable_items: {
+        type: Sequelize.STRING(100),
+        allowNull: true,
+      },
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
