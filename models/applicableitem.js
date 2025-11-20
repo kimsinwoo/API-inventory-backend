@@ -5,10 +5,8 @@ const { Model, DataTypes } = require("sequelize");
 module.exports = (sequelize) => {
   class ApplicableItem extends Model {
     static associate(models) {
-      ApplicableItem.hasMany(models.StorageCondition, {
-        foreignKey: "applicable_item_id",
-        sourceKey: "id",
-      });
+      // StorageCondition과의 관계 제거
+      // applicable_items는 텍스트 필드로만 저장되므로 관계가 필요 없음
     }
   }
 

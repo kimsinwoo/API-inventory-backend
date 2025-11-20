@@ -13,4 +13,8 @@ router.post("/", /* authenticate, requirePermission("can_basic_info"), */ vr.cre
 router.put("/:id", /* authenticate, requirePermission("can_basic_info"), */ vr.updateRules, ctrl.update);
 router.delete("/:id", /* authenticate, requirePermission("can_basic_info"), */ ctrl.destroy);
 
+// ✅ 품목 관리
+router.post("/:id/items", /* authenticate, requirePermission("can_basic_info"), */ ctrl.addItems);
+router.delete("/:id/items", /* authenticate, requirePermission("can_basic_info"), */ ctrl.removeItem);
+
 module.exports = router;

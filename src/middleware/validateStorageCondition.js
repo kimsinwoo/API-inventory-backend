@@ -16,6 +16,7 @@ exports.createRules = validate({
     name: z.string().trim().min(1).max(50),
     temperature_range: z.string().trim().min(1).max(50).optional(),
     humidity_range: z.string().trim().min(1).max(50).optional(),
+    itemNames: z.array(z.string().trim().min(1)).optional(),
   }),
 });
 
@@ -24,5 +25,6 @@ exports.updateRules = validate({
     name: z.string().trim().min(1).max(50).optional(),
     temperature_range: z.string().trim().min(1).max(50).optional(),
     humidity_range: z.string().trim().min(1).max(50).optional(),
+    itemNames: z.array(z.string().trim().min(1)).optional(),
   }),
 });

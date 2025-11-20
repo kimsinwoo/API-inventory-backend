@@ -36,15 +36,41 @@ exports.getFactory = async (id) => {
 };
 
 exports.createFactory = async (payload) => {
-  const { processIds } = payload;
+  const { processNames, processIds } = payload;
   const data = sanitizePayload(payload);
 
   const t = await sequelize.transaction();
   try {
     const factory = await Factory.create(data, { transaction: t });
 
-    if (Array.isArray(processIds) && processIds.length) {
-      const processes = await Process.findAll({ where: { id: processIds } });
+    // processNames가 있으면 이름으로 공정 생성/찾아서 추가
+    if (Array.isArray(processNames) && processNames.length > 0) {
+      const processesToAdd = [];
+      for (const name of processNames) {
+        const trimmedName = String(name).trim();
+        if (!trimmedName) continue;
+
+        // 이름으로 공정 찾기
+        let process = await Process.findOne({ 
+          where: { name: trimmedName }, 
+          transaction: t 
+        });
+
+        // 공정이 없으면 생성
+        if (!process) {
+          process = await Process.create({ name: trimmedName }, { transaction: t });
+        }
+
+        processesToAdd.push(process);
+      }
+
+      if (processesToAdd.length > 0) {
+        await factory.setProcesses(processesToAdd, { transaction: t });
+      }
+    } 
+    // processIds가 있으면 ID로 공정 찾아서 추가 (하위 호환성)
+    else if (Array.isArray(processIds) && processIds.length) {
+      const processes = await Process.findAll({ where: { id: processIds }, transaction: t });
       await factory.setProcesses(processes, { transaction: t });
     }
 
@@ -63,7 +89,7 @@ exports.createFactory = async (payload) => {
 
 exports.updateFactory = async (id, payload) => {
   const data = sanitizePayload(payload);
-  const { processIds } = payload;
+  const { processNames, processIds } = payload;
 
   const t = await sequelize.transaction();
   try {
@@ -75,9 +101,42 @@ exports.updateFactory = async (id, payload) => {
       await factory.update(data, { transaction: t });
     }
 
-    if (Array.isArray(processIds)) {
-      const processes = await Process.findAll({ where: { id: processIds } });
-      await factory.setProcesses(processes, { transaction: t });
+    // processNames가 있으면 이름으로 공정 생성/찾아서 교체
+    if (Array.isArray(processNames)) {
+      if (processNames.length === 0) {
+        // 빈 배열이면 모든 공정 제거
+        await factory.setProcesses([], { transaction: t });
+      } else {
+        const processesToSet = [];
+        for (const name of processNames) {
+          const trimmedName = String(name).trim();
+          if (!trimmedName) continue;
+
+          // 이름으로 공정 찾기
+          let process = await Process.findOne({ 
+            where: { name: trimmedName }, 
+            transaction: t 
+          });
+
+          // 공정이 없으면 생성
+          if (!process) {
+            process = await Process.create({ name: trimmedName }, { transaction: t });
+          }
+
+          processesToSet.push(process);
+        }
+
+        await factory.setProcesses(processesToSet, { transaction: t });
+      }
+    }
+    // processIds가 있으면 ID로 공정 찾아서 교체 (하위 호환성)
+    else if (Array.isArray(processIds)) {
+      if (processIds.length === 0) {
+        await factory.setProcesses([], { transaction: t });
+      } else {
+        const processes = await Process.findAll({ where: { id: processIds }, transaction: t });
+        await factory.setProcesses(processes, { transaction: t });
+      }
     }
 
     const updated = await Factory.findByPk(id, {
@@ -118,20 +177,48 @@ exports.deleteFactory = async (id) => {
   return Factory.destroy({ where: { id } });
 };
 
-exports.addFactoryProcesses = async (id, processIds = []) => {
+exports.addFactoryProcesses = async (id, processNames = []) => {
   const t = await sequelize.transaction();
   try {
     const factory = await Factory.findByPk(id, { transaction: t });
     if (!factory) return null;
 
-    // 중복 추가 방지: 현재 세트 + 신규 세트를 합집합으로 만들기
+    // processNames가 배열이 아니거나 비어있으면 에러
+    if (!Array.isArray(processNames) || processNames.length === 0) {
+      const err = new Error("processNames는 비어있지 않은 배열이어야 합니다.");
+      err.status = 400;
+      throw err;
+    }
+
+    // 각 공정 이름에 대해 공정을 찾거나 생성
+    const processesToAdd = [];
     const current = await factory.getProcesses({ transaction: t });
     const currentIds = new Set(current.map((p) => p.id));
-    const toAddIds = (Array.isArray(processIds) ? processIds : []).filter((pid) => !currentIds.has(pid));
 
-    if (toAddIds.length) {
-      const processes = await Process.findAll({ where: { id: toAddIds }, transaction: t });
-      await factory.addProcesses(processes, { transaction: t });
+    for (const name of processNames) {
+      const trimmedName = String(name).trim();
+      if (!trimmedName) continue; // 빈 문자열은 건너뛰기
+
+      // 이름으로 공정 찾기
+      let process = await Process.findOne({ 
+        where: { name: trimmedName }, 
+        transaction: t 
+      });
+
+      // 공정이 없으면 생성
+      if (!process) {
+        process = await Process.create({ name: trimmedName }, { transaction: t });
+      }
+
+      // 이미 공장에 연결된 공정이 아니면 추가 목록에 포함
+      if (!currentIds.has(process.id)) {
+        processesToAdd.push(process);
+      }
+    }
+
+    // 공정들을 공장에 추가
+    if (processesToAdd.length > 0) {
+      await factory.addProcesses(processesToAdd, { transaction: t });
     }
 
     const updated = await Factory.findByPk(id, {

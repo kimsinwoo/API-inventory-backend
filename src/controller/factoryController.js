@@ -54,11 +54,21 @@ exports.destroy = async (req, res, next) => {
 
 exports.addProcesses = async (req, res, next) => {
   try {
-    const { processIds } = req.body;
-    const updated = await svc.addFactoryProcesses(req.params.id, processIds);
+    const { processNames } = req.body;
+    
+    // processNames가 없거나 배열이 아니면 에러
+    if (!processNames || !Array.isArray(processNames) || processNames.length === 0) {
+      return res.status(400).json({ 
+        ok: false, 
+        message: "processNames는 비어있지 않은 배열이어야 합니다." 
+      });
+    }
+
+    const updated = await svc.addFactoryProcesses(req.params.id, processNames);
     if (!updated) return res.status(404).json({ ok: false, message: "Factory not found" });
     res.json({ ok: true, data: updated });
   } catch (e) {
+    if (e.status === 400) return res.status(400).json({ ok: false, message: e.message });
     next(e);
   }
 };
