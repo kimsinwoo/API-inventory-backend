@@ -8,8 +8,8 @@
 const express = require('express');
 const { z } = require('zod');
 const labelController = require('../controller/labelController');
-const { authenticate } = require("../utils/sessionAuth");
-const { requirePermission } = require("../middleware/permissionMiddleware");
+// const { authenticate } = require("../utils/sessionAuth");
+// const { requirePermission } = require("../middleware/permissionMiddleware");
 
 const router = express.Router();
 
@@ -39,7 +39,7 @@ function validate(schemas) {
  * GET /api/label/printers
  * - cloud 모드에서는 [] 리턴하도록 controller/service 에서 처리
  */
-router.get('/printers', authenticate, requirePermission("can_label"), labelController.getPrinters);
+router.get('/printers', /* authenticate, requirePermission("can_label"), */ labelController.getPrinters);
 
 /**
  * 라벨 프린트
@@ -109,7 +109,7 @@ const validatePrintSavedLabelPdf = validate({
   })
 });
 
-router.post('/pdf', authenticate, requirePermission("can_label"), validatePrintSavedLabelPdf, labelController.printSavedLabelPdf);
+router.post('/pdf', /* authenticate, requirePermission("can_label"), */ validatePrintSavedLabelPdf, labelController.printSavedLabelPdf);
 
 /**
  * 템플릿 저장 (데이터만)
@@ -140,7 +140,7 @@ const validateSaveTemplate = validate({
   })
 });
 
-router.post('/template', authenticate, requirePermission("can_label"), validateSaveTemplate, labelController.saveTemplate);
+router.post('/template', /* authenticate, requirePermission("can_label"), */ validateSaveTemplate, labelController.saveTemplate);
 
 /**
  * 템플릿 목록 조회
@@ -163,12 +163,12 @@ const validateGetTemplates = validate({
   })
 });
 
-router.get('/templates', authenticate, requirePermission("can_label"), validateGetTemplates, labelController.getTemplates);
+router.get('/templates', /* authenticate, requirePermission("can_label"), */ validateGetTemplates, labelController.getTemplates);
 
 /**
  * 템플릿 단일 조회
  * GET /api/label/template/:templateId
  */
-router.get('/template/:templateId', authenticate, requirePermission("can_label"), labelController.getTemplate);
+router.get('/template/:templateId', /* authenticate, requirePermission("can_label"), */ labelController.getTemplate);
 
 module.exports = router;
