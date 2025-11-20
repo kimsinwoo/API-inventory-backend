@@ -36,7 +36,7 @@ async function seedAnniecongData() {
           id: 2,
           name: "2공장",
           type: "2Manufacturing",
-          address: "경상북도도 상주시 냉림1길 66",
+          address: "경상북도 상주시 냉림1길 66",
         },
         {
           id: 3,
@@ -62,14 +62,14 @@ async function seedAnniecongData() {
       const conditions = await StorageCondition.bulkCreate([
         {
           id: 1,
-          name: "상온 보관관",
+          name: "상온 보관",
           temperature_range: "15°C ~ 25°C",
           humidity_range: "40-60%",
           applicable_items: "완제품, 냉동 육류",
         },
         {
           id: 2,
-          name: "냉장 보관관",
+          name: "냉장 보관",
           temperature_range: "0°C ~ 4°C",
           humidity_range: "85-95%",
           applicable_items: "신선 육류, 야채류, 반제품품",
