@@ -134,17 +134,44 @@ exports.destroy = async (req, res, next) => {
 /**
  * 권한 업데이트 (단일 권한, 사용자별)
  * PUT /api/roles/:id/permissions/:permissionName
- * 주의: :id는 User ID를 의미합니다 (기존 API 주소 유지)
+ * :id는 User ID 또는 UserProfile ID를 의미합니다
  */
 exports.updatePermission = async (req, res, next) => {
   try {
-    const { id, permissionName } = req.params; // id는 User ID
+    const { id, permissionName } = req.params;
     const { value } = req.body;
+    
+    const db = req.app.get("db");
+    // User ID로 먼저 시도
+    let user = await db.User.findByPk(id, {
+      include: [{
+        model: db.UserProfile,
+        as: "UserProfile",
+      }],
+    });
+    
+    // User를 찾지 못한 경우 UserProfile ID로 시도
+    if (!user) {
+      const profile = await db.UserProfile.findByPk(id);
+      if (profile) {
+        user = await db.User.findOne({
+          where: { profile_id: profile.id },
+          include: [{
+            model: db.UserProfile,
+            as: "UserProfile",
+          }],
+        });
+      }
+    }
+    
+    if (!user || !user.UserProfile) {
+      return res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다" });
+    }
     
     const authService = require("../services/authService");
     const permissions = { [permissionName]: value };
-    const user = await authService.updateUserPermissions(req, id, permissions);
-    res.json({ ok: true, data: user });
+    const updatedUser = await authService.updateUserPermissions(req, user.id, permissions);
+    res.json({ ok: true, data: updatedUser });
   } catch (error) {
     if (error.status === 404) {
       return res.status(404).json({ ok: false, message: error.message });
@@ -159,16 +186,43 @@ exports.updatePermission = async (req, res, next) => {
 /**
  * 권한 일괄 업데이트 (사용자별)
  * PUT /api/roles/:id/permissions
- * 주의: :id는 User ID를 의미합니다 (기존 API 주소 유지)
+ * :id는 User ID 또는 UserProfile ID를 의미합니다
  */
 exports.updatePermissions = async (req, res, next) => {
   try {
-    const { id } = req.params; // User ID
+    const { id } = req.params;
     const permissions = req.body;
     
+    const db = req.app.get("db");
+    // User ID로 먼저 시도
+    let user = await db.User.findByPk(id, {
+      include: [{
+        model: db.UserProfile,
+        as: "UserProfile",
+      }],
+    });
+    
+    // User를 찾지 못한 경우 UserProfile ID로 시도
+    if (!user) {
+      const profile = await db.UserProfile.findByPk(id);
+      if (profile) {
+        user = await db.User.findOne({
+          where: { profile_id: profile.id },
+          include: [{
+            model: db.UserProfile,
+            as: "UserProfile",
+          }],
+        });
+      }
+    }
+    
+    if (!user || !user.UserProfile) {
+      return res.status(404).json({ ok: false, message: "사용자를 찾을 수 없습니다" });
+    }
+    
     const authService = require("../services/authService");
-    const user = await authService.updateUserPermissions(req, id, permissions);
-    res.json({ ok: true, data: user });
+    const updatedUser = await authService.updateUserPermissions(req, user.id, permissions);
+    res.json({ ok: true, data: updatedUser });
   } catch (error) {
     if (error.status === 404) {
       return res.status(404).json({ ok: false, message: error.message });
