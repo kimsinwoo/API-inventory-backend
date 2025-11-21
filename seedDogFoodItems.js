@@ -152,6 +152,7 @@ async function seedDogFoodItems() {
 
       const inventoryData = [];
       const statuses = ["Normal", "LowStock", "Expiring", "Expired"];
+      let inventoryIndex = 0; // 재고 인덱스 (고유 바코드 생성을 위해)
       
       createdItems.forEach((item, index) => {
         const status = statuses[index % statuses.length];
@@ -176,8 +177,19 @@ async function seedDogFoodItems() {
             quantity = (item.shortage * (3 + Math.random() * 5)).toFixed(2); // 정상 상태 (다양한 수량)
         }
 
-        // 바코드 생성
-        const barcode = generateBarcode(item.id, receivedAt, firstReceivedAt, expirationDate);
+        // 고유 바코드 생성 (인덱스와 랜덤 값을 추가하여 중복 방지)
+        // 타임스탬프(13자리) + 체크섬(1자리) = 14자리 유지
+        const baseTimestamp = Date.now();
+        // 인덱스와 랜덤 값을 마지막 3자리에 추가 (0-999 범위)
+        const offset = (inventoryIndex * 100 + Math.floor(Math.random() * 100)) % 1000;
+        const uniqueTimestamp = baseTimestamp + offset;
+        // 13자리로 제한 (타임스탬프가 13자리를 초과할 수 있으므로)
+        const timestampStr = String(uniqueTimestamp).slice(-13);
+        const checksum = timestampStr
+          .split('')
+          .reduce((sum, digit) => sum + parseInt(digit, 10), 0) % 10;
+        const barcode = `${timestampStr}${checksum}`;
+        inventoryIndex++;
 
         inventoryData.push({
           item_id: item.id,
@@ -199,7 +211,20 @@ async function seedDogFoodItems() {
           const secondReceivedAt = baseDate.subtract(5, "day").toDate();
           const secondFirstReceivedAt = baseDate.subtract(8, "day").toDate();
           const secondQuantity = (item.shortage * (2 + Math.random() * 3)).toFixed(2);
-          const secondBarcode = generateBarcode(item.id, secondReceivedAt, secondFirstReceivedAt, secondExpirationDate);
+          
+          // 고유 바코드 생성 (인덱스와 랜덤 값을 추가하여 중복 방지)
+          // 타임스탬프(13자리) + 체크섬(1자리) = 14자리 유지
+          const secondBaseTimestamp = Date.now();
+          // 인덱스와 랜덤 값을 마지막 3자리에 추가 (0-999 범위)
+          const secondOffset = (inventoryIndex * 100 + Math.floor(Math.random() * 100)) % 1000;
+          const secondUniqueTimestamp = secondBaseTimestamp + secondOffset;
+          // 13자리로 제한 (타임스탬프가 13자리를 초과할 수 있으므로)
+          const secondTimestampStr = String(secondUniqueTimestamp).slice(-13);
+          const secondChecksum = secondTimestampStr
+            .split('')
+            .reduce((sum, digit) => sum + parseInt(digit, 10), 0) % 10;
+          const secondBarcode = `${secondTimestampStr}${secondChecksum}`;
+          inventoryIndex++;
 
           inventoryData.push({
             item_id: item.id,
