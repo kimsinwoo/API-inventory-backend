@@ -1,7 +1,7 @@
 "use strict";
 
 const db = require("../../models");
-const { User, UserProfile, Role } = db;
+const { User, UserProfile } = db;
 
 /**
  * 권한 체크 미들웨어

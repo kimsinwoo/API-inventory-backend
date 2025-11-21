@@ -114,16 +114,8 @@ async function signupUser(req, {
   const isFirstUser = userCount === 0;
 
   // 기본 Role ID 설정 (하위 호환성 유지)
-  let roleId = 1; // 기본 Role ID
-  
-  // role 파라미터가 제공되면 그것을 우선 사용
-  if (role !== undefined && role !== null) {
-    // 제공된 role이 유효한 Role ID인지 확인
-    const providedRole = await db.Role.findByPk(role);
-    if (providedRole) {
-      roleId = providedRole.id;
-    }
-  }
+  // UserProfile의 role 필드는 이제 참조용이므로 그대로 사용
+  let roleId = role || 1; // 기본 Role ID
 
   // 사용자 프로필 생성 (권한 필드 포함)
   const profileData = {
