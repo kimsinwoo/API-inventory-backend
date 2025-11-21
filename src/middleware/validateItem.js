@@ -49,7 +49,8 @@ exports.validateItemCreate = (req, res, next) => {
         g: 'g', 
         ea: 'EA', 
         box: 'BOX', 
-        pcs: 'PCS' 
+        pcs: 'PCS',
+        pallet: 'pallet'
       };
       
       const normalized = unitMap[stringValue];
