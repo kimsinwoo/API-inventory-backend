@@ -4,8 +4,8 @@
 const { Router } = require("express");
 const ctrl = require("../controller/plannedTransactionController");
 const vr = require("../middleware/validatePlannedTransaction");
-// const { authenticate } = require("../utils/sessionAuth");
-// const { requirePermission } = require("../middleware/permissionMiddleware");
+const { authenticate } = require("../utils/sessionAuth");
+const { requirePermission } = require("../middleware/permissionMiddleware");
 
 const router = Router();
 
@@ -16,8 +16,8 @@ const router = Router();
 // 예정 트랜잭션 생성
 router.post(
   "/",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   vr.validateCreatePlanned,
   ctrl.create
 );
@@ -25,8 +25,8 @@ router.post(
 // 예정 트랜잭션 목록 조회
 router.get(
   "/",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   vr.validateListPlanned,
   ctrl.list
 );
@@ -34,16 +34,16 @@ router.get(
 // 통계 조회
 router.get(
   "/stats",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   ctrl.stats
 );
 
 // 예정 트랜잭션 상세 조회
 router.get(
   "/:id",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   vr.validatePlannedId,
   ctrl.detail
 );
@@ -51,8 +51,8 @@ router.get(
 // 예정 트랜잭션 수정
 router.put(
   "/:id",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   vr.validatePlannedId,
   vr.validateUpdatePlanned,
   ctrl.update
@@ -61,8 +61,8 @@ router.put(
 // 예정 트랜잭션 삭제
 router.delete(
   "/:id",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   vr.validatePlannedId,
   ctrl.remove
 );
@@ -74,8 +74,8 @@ router.delete(
 // 승인
 router.post(
   "/:id/approve",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   vr.validatePlannedId,
   vr.validateApprovePlanned,
   ctrl.approve
@@ -84,8 +84,8 @@ router.post(
 // 거부/취소
 router.post(
   "/:id/reject",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   vr.validatePlannedId,
   ctrl.reject
 );
@@ -97,8 +97,8 @@ router.post(
 // 입고 예정 → 실제 입고 처리
 router.post(
   "/:id/complete-receive",
-  // authenticate,
-  // requirePermission("can_receiving"),
+  authenticate,
+  requirePermission("can_receiving"),
   vr.validatePlannedId,
   vr.validateCompletePlannedReceive,
   ctrl.completeReceive
@@ -107,8 +107,8 @@ router.post(
 // 출고 예정 → 실제 출고 처리
 router.post(
   "/:id/complete-issue",
-  // authenticate,
-  // requirePermission("can_shipping"),
+  authenticate,
+  requirePermission("can_shipping"),
   vr.validatePlannedId,
   vr.validateCompletePlannedIssue,
   ctrl.completeIssue

@@ -50,8 +50,8 @@ app.use(
 );
 
 // Body 파싱 미들웨어
-app.use(express.json({ limit: "10mb" })); // JSON 형식의 요청 본문 파싱
-app.use(express.urlencoded({ extended: true, limit: "10mb" })); // URL 인코딩된 데이터 파싱
+app.use(express.json({ limit: "20mb" })); // JSON 형식의 요청 본문 파싱
+app.use(express.urlencoded({ extended: true, limit: "20mb" })); // URL 인코딩된 데이터 파싱
 
 app.use(
   '/api/static/labels',
