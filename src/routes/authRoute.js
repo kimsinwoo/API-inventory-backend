@@ -9,6 +9,7 @@ router.post("/login", authController.login);
 router.post("/join", authController.signup);
 router.post("/logout", authenticate, authController.logout);
 router.get("/me", authenticate, authController.getMe);
+router.get("/me/permissions", authenticate, authController.getMyPermissions);
 router.get("/", authenticate, authController.getAllUsers);
 router.get("/:id", authenticate, authController.getUserById);
 router.put("/:id", authenticate, authController.updateUser);

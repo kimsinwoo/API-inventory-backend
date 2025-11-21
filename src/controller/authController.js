@@ -55,13 +55,15 @@ async function logout(req, res) {
 /**
  * 현재 로그인한 사용자 정보 조회
  * - 세션에서 사용자 ID를 가져와 조회
+ * - 권한 정보 포함
  */
 async function getMe(req, res) {
   try {
-    const userId = req.session.userId;
-    console.log("userId : ", userId);
+    const userId = req.session?.userId || req.user?.id;
+    
     if (!userId) {
       return res.status(401).json({ 
+        ok: false,
         message: "로그인이 필요합니다" 
       });
     }
@@ -70,31 +72,61 @@ async function getMe(req, res) {
     
     if (!user) {
       return res.status(404).json({ 
+        ok: false,
         message: "사용자를 찾을 수 없습니다" 
       });
     }
     
-    // 서명 이미지 URL 추가 (주석처리)
     const profile = user.profile || user.UserProfile || {};
-    // let signatureImageUrl = null;
-    // if (profile.signature_image_path) {
-    //   const pathParts = profile.signature_image_path.split('/');
-    //   const fileName = pathParts[pathParts.length - 1];
-    //   signatureImageUrl = `/api/static/signatures/${fileName}`;
-    // }
+    
+    // 권한 정보 추출
+    const permissions = {
+      can_basic_info: profile.can_basic_info === true || profile.can_basic_info === 1,
+      can_receiving: profile.can_receiving === true || profile.can_receiving === 1,
+      can_plant1_preprocess: profile.can_plant1_preprocess === true || profile.can_plant1_preprocess === 1,
+      can_plant_transfer: profile.can_plant_transfer === true || profile.can_plant_transfer === 1,
+      can_plant2_manufacture: profile.can_plant2_manufacture === true || profile.can_plant2_manufacture === 1,
+      can_shipping: profile.can_shipping === true || profile.can_shipping === 1,
+      can_label: profile.can_label === true || profile.can_label === 1,
+      can_inventory: profile.can_inventory === true || profile.can_inventory === 1,
+      can_quality: profile.can_quality === true || profile.can_quality === 1,
+      can_user_management: profile.can_user_management === true || profile.can_user_management === 1,
+    };
 
     res.json({ 
+      ok: true,
       message: "사용자 정보 조회 성공", 
       user: {
         id: user.id,
         profile: {
-          ...profile,
-          // signature_image_url: signatureImageUrl,
+          id: profile.id,
+          full_name: profile.full_name,
+          phone_number: profile.phone_number,
+          email: profile.email,
+          hire_date: profile.hire_date,
+          position: profile.position,
+          department: profile.department,
+          role: profile.role,
+        },
+        permissions: permissions,
+        // 권한 설명 매핑 (프론트엔드에서 사용 가능)
+        permissionDescriptions: {
+          can_basic_info: "기초정보 관리",
+          can_receiving: "입고 관리",
+          can_plant1_preprocess: "공장1 전처리",
+          can_plant_transfer: "공장 이송",
+          can_plant2_manufacture: "공장2 제조",
+          can_shipping: "배송 관리",
+          can_label: "라벨 관리",
+          can_inventory: "재고 관리",
+          can_quality: "품질 관리",
+          can_user_management: "사용자 관리",
         }
       }
     });
   } catch (error) {
     res.status(400).json({ 
+      ok: false,
       message: error.message 
     });
   }
@@ -302,6 +334,70 @@ async function deleteUser(req, res) {
 // }
 
 /**
+ * 현재 사용자의 권한 정보만 조회
+ * - 프론트엔드에서 권한 체크용으로 사용
+ */
+async function getMyPermissions(req, res) {
+  try {
+    const userId = req.session?.userId || req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ 
+        ok: false,
+        message: "로그인이 필요합니다" 
+      });
+    }
+    
+    const user = await authService.getUserById(req, userId);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        ok: false,
+        message: "사용자를 찾을 수 없습니다" 
+      });
+    }
+    
+    const profile = user.profile || user.UserProfile || {};
+    
+    // 권한 정보만 추출
+    const permissions = {
+      can_basic_info: profile.can_basic_info === true || profile.can_basic_info === 1,
+      can_receiving: profile.can_receiving === true || profile.can_receiving === 1,
+      can_plant1_preprocess: profile.can_plant1_preprocess === true || profile.can_plant1_preprocess === 1,
+      can_plant_transfer: profile.can_plant_transfer === true || profile.can_plant_transfer === 1,
+      can_plant2_manufacture: profile.can_plant2_manufacture === true || profile.can_plant2_manufacture === 1,
+      can_shipping: profile.can_shipping === true || profile.can_shipping === 1,
+      can_label: profile.can_label === true || profile.can_label === 1,
+      can_inventory: profile.can_inventory === true || profile.can_inventory === 1,
+      can_quality: profile.can_quality === true || profile.can_quality === 1,
+      can_user_management: profile.can_user_management === true || profile.can_user_management === 1,
+    };
+
+    res.json({ 
+      ok: true,
+      permissions: permissions,
+      permissionDescriptions: {
+        can_basic_info: "기초정보 관리",
+        can_receiving: "입고 관리",
+        can_plant1_preprocess: "공장1 전처리",
+        can_plant_transfer: "공장 이송",
+        can_plant2_manufacture: "공장2 제조",
+        can_shipping: "배송 관리",
+        can_label: "라벨 관리",
+        can_inventory: "재고 관리",
+        can_quality: "품질 관리",
+        can_user_management: "사용자 관리",
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ 
+      ok: false,
+      message: error.message 
+    });
+  }
+}
+
+/**
  * 도장(서명) 이미지 조회 (주석처리)
  */
 // async function getSignature(req, res) {
@@ -342,6 +438,7 @@ module.exports = {
   logout,
   signup,
   getMe,
+  getMyPermissions,
   getAllUsers,
   getUserById,
   updateUser,
