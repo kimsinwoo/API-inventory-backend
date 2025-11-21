@@ -6,10 +6,6 @@ function validLine(line = {}) {
   }
   
   exports.validateBOMCreate = (req, res, next) => {
-    const { name, lines } = req.body || {};
-    if (!name || !String(name).trim()) {
-      return res.status(400).json({ ok: false, message: "BOM 명(name)은 필수입니다." });
-    }
     next();
   };
   

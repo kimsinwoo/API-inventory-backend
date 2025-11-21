@@ -61,12 +61,40 @@ exports.get = async (id) => {
   });
 };
 
-exports.create = async ({ name, code, description, lines = [] }) => {
+exports.create = async (payload) => {
+  // payload가 undefined로 들어와도 터지지 않게 방어
+  const body = payload ?? {};
+
+  // 프론트에서 name 이나 bomName 둘 중 하나로 올 수 있으니까 둘 다 지원
+  const {
+    name,
+    bomName,
+    code,
+    description,
+    lines = [],
+  } = body;
+
+  // 최종적으로 BOM에 들어갈 이름
+  const trimmedName =
+    typeof name === 'string' && name.trim().length > 0
+      ? name.trim()
+      : typeof bomName === 'string' && bomName.trim().length > 0
+        ? bomName.trim()
+        : null;
+
+  if (!trimmedName) {
+    // DB에서 notNull 터지게 두지 말고, 우리가 친절한 400 에러를 던지자
+    const err = new Error('BOM name이 필요합니다.');
+    err.status = 400;
+    throw err;
+  }
+
   const t = await db.sequelize.transaction();
   try {
+    // ✅ 여기서 name을 무조건 null 아닌 값으로 넣어줌
     const bom = await BOM.create(
       {
-        name,
+        name: trimmedName,
         description: description !== undefined ? description : null,
       },
       { transaction: t }
@@ -74,8 +102,15 @@ exports.create = async ({ name, code, description, lines = [] }) => {
 
     let order = 1;
     for (const line of lines) {
-      const item_id = await resolveItemId({ itemId: line.itemId, itemCode: line.itemCode });
-      if (!item_id) throw new Error(`존재하지 않는 품목입니다: ${line.itemCode || line.itemId}`);
+      const item_id = await resolveItemId({
+        itemId: line.itemId,
+        itemCode: line.itemCode,
+      });
+
+      if (!item_id) {
+        throw new Error(`존재하지 않는 품목입니다: ${line.itemCode || line.itemId}`);
+      }
+
       await BOMComponent.create(
         {
           bom_id: bom.id,

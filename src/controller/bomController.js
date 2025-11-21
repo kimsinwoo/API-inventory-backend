@@ -36,24 +36,6 @@ module.exports = {
       // 1) BOM 생성
       const created = await svc.create(req.body);
 
-      // 2) Items 테이블에서 동일 code 품목에 bom_id 연결 (code로 검색하도록 수정)
-      //    만약 req.body.code가 없으면 created.code 사용 (혹시 undefined일 때 대비)
-      const bomCode = req.body.code || created.code;
-      if (!bomCode) {
-        return res.status(400).json({ ok: false, message: 'code가 필요합니다.' });
-      }
-      const [affectedCount] = await Items.update(
-        { bom_id: created.id },
-        { where: { code: bomCode } }
-      );
-
-      // 3) 연관된 품목이 하나도 없으면 에러 반환
-      if (affectedCount === 0) {
-        return res
-          .status(400)
-          .json({ ok: false, message: '해당 code의 품목을 등록해주세요.' });
-      }
-
       // 4) 정상: BOM + 품목 연결 완료
       return res.status(201).json({ ok: true, data: created });
     } catch (e) {
